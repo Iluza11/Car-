@@ -1,0 +1,1546 @@
+```html
+<!DOCTYPE html>
+<!-- CarКарыч · сохраните как index.html и откройте в браузере. Интернет и API не нужны — всё работает офлайн. -->
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content">
+<title>CarКарыч — чат-бот подбора автомобиля</title>
+<meta name="description" content="CarКарыч — офлайн чат-бот подбора автомобиля: 34 авто, скоринг по 7 критериям, сравнение, каталог, отчёт. Один HTML-файл.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='%23FFF6E6' stroke='%23E0D8C6'/%3E%3Cpath d='M6 20a11 11 0 0 1 20 0' stroke='%23F59E0B' stroke-width='3' fill='none' stroke-linecap='round'/%3E%3Cpath d='M16 20L22 12' stroke='%23E11D48' stroke-width='3' stroke-linecap='round'/%3E%3Ccircle cx='16' cy='20' r='2.5' fill='%23A85E00'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;900&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ====== ПАЛИТРА: светлый шоурум, тёплая бумага, асфальтовый текст,
+   свет фар (амбра), задние стопы (алый), EV-циан, эко-зелень, приборный фиолет ====== */
+:root{
+  --bg0:#EDEAE3; --bg1:#F8F6F1; --bg2:#FFFFFF; --bg3:#F2EFE8;
+  --line:#E2DCD0; --line2:#CFC7B7;
+  --ink:#1B1F26; --mut:#55606F; --dim:#6F6B60;
+  --amber:#F59E0B; --orange:#F2650A; --amber-ink:#A85E00;
+  --cyan:#0EA5B7; --cyan-ink:#0B7C8C;
+  --blue:#2563EB; --blue-ink:#1D4ED8;
+  --green:#16A34A; --green-ink:#15803D;
+  --red:#E11D48; --red-ink:#BE123C;
+  --violet:#7C3AED; --violet-ink:#6D28D9;
+  --warn:#B45309;
+  --grad-a:linear-gradient(135deg,#FFB020,#F2650A);
+  --on-amber:#2A1600;
+  --disp:'Unbounded','Arial Black',system-ui,sans-serif;
+  --body:'Manrope','Segoe UI',system-ui,-apple-system,sans-serif;
+  --r-lg:20px;
+  --shadow:0 14px 36px rgba(74,60,34,.12),0 2px 6px rgba(74,60,34,.06);
+  --head-h:64px; --app-h:100vh;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{height:100%}
+body{
+  position:fixed;inset:0;font-family:var(--body);background:var(--bg0);color:var(--ink);
+  overflow:hidden;-webkit-font-smoothing:antialiased;font-size:15px;overscroll-behavior:none;
+}
+::selection{background:rgba(245,158,11,.32)}
+button{font-family:var(--body);cursor:pointer;color:inherit;background:none;border:none}
+input,select{font-family:var(--body);color:var(--ink)}
+:focus-visible{outline:2px solid var(--amber-ink);outline-offset:2px;border-radius:6px}
+b,strong{font-weight:800}
+
+/* ============ Скроллбары в стиле проекта ============ */
+*{scrollbar-width:thin;scrollbar-color:#CFC7B7 transparent}
+::-webkit-scrollbar{width:9px;height:8px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:#CFC7B7;border-radius:8px;border:2px solid var(--bg1)}
+::-webkit-scrollbar-thumb:hover{background:var(--amber)}
+::-webkit-scrollbar-corner{background:transparent}
+
+/* ============ Живой фон: чертёжная сетка, дрейфующий свет, зерно бумаги ============ */
+.bg{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.bg .grid{position:absolute;inset:0;
+  background-image:linear-gradient(rgba(40,60,90,.055) 1px,transparent 1px),
+                   linear-gradient(90deg,rgba(40,60,90,.055) 1px,transparent 1px);
+  background-size:46px 46px;
+  -webkit-mask-image:radial-gradient(ellipse at 50% 30%,#000 30%,transparent 80%);
+  mask-image:radial-gradient(ellipse at 50% 30%,#000 30%,transparent 80%);
+}
+.blob{position:absolute;border-radius:50%;filter:blur(95px)}
+.blob.a{width:560px;height:560px;background:var(--amber);opacity:.30;top:-14%;left:-6%;animation:drift1 26s ease-in-out infinite alternate}
+.blob.b{width:480px;height:480px;background:var(--cyan);opacity:.22;top:28%;right:-10%;animation:drift2 33s ease-in-out infinite alternate}
+.blob.c{width:440px;height:440px;background:var(--violet);opacity:.16;bottom:-16%;left:32%;animation:drift3 39s ease-in-out infinite alternate}
+@keyframes drift1{to{transform:translate(90px,70px) scale(1.12)}}
+@keyframes drift2{to{transform:translate(-80px,-60px) scale(.9)}}
+@keyframes drift3{to{transform:translate(70px,-50px) scale(1.15)}}
+.grain{position:absolute;inset:0;opacity:.055;mix-blend-mode:multiply;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");}
+
+/* ============ Шапка ============ */
+header{
+  position:fixed;top:0;left:0;right:0;height:var(--head-h);z-index:50;
+  display:flex;align-items:center;gap:14px;padding:0 18px;
+  background:rgba(252,251,248,.9);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--line);animation:headIn .55s cubic-bezier(.2,.8,.2,1) both;
+}
+@keyframes headIn{from{transform:translateY(-18px);opacity:0}}
+.logo{display:flex;align-items:center;gap:11px;user-select:none}
+.logo svg{width:36px;height:36px;flex:none}
+.logo .needle{transform-origin:18px 22px;animation:needle 1.6s cubic-bezier(.3,1.4,.4,1) .3s both}
+@keyframes needle{0%{transform:rotate(-70deg)}60%{transform:rotate(24deg)}100%{transform:rotate(0)}}
+.logo-t{line-height:1.05}
+.logo-t .word{font-family:var(--disp);font-weight:900;font-size:16px;letter-spacing:.01em}
+.logo-t .word em{font-style:normal;color:var(--amber-ink)}
+.logo-t .sub{font-size:10px;color:var(--dim);letter-spacing:.06em;margin-top:3px}
+.status{display:flex;align-items:center;gap:8px;margin:0 auto;font-size:12px;color:var(--mut);font-weight:600}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 0 0 rgba(22,163,74,.5);animation:pulse 2s infinite}
+@keyframes pulse{70%{box-shadow:0 0 0 8px rgba(22,163,74,0)}100%{box-shadow:0 0 0 0 rgba(22,163,74,0)}}
+.h-actions{display:flex;gap:8px;margin-left:auto}
+.hbtn{height:38px;min-width:38px;padding:0 10px;border-radius:12px;border:1px solid var(--line);
+  background:var(--bg2);display:inline-flex;align-items:center;justify-content:center;gap:7px;
+  color:var(--mut);font-size:12.5px;font-weight:700;transition:.2s;box-shadow:0 1px 2px rgba(74,60,34,.05)}
+.hbtn:hover{border-color:var(--amber);color:var(--ink);box-shadow:0 4px 14px rgba(245,158,11,.22);transform:translateY(-1px)}
+.hbtn:active{transform:scale(.95)}
+.hbtn svg{width:17px;height:17px}
+#catBtn{display:none}
+
+/* ============ Каркас (без собственного stacking-context —
+   иначе мобильный каталог уходит под затемняющий слой) ============ */
+.layout{
+  position:relative;display:grid;grid-template-columns:minmax(0,1fr) 400px;gap:16px;
+  max-width:1440px;margin:var(--head-h) auto 0;padding:16px;
+  height:calc(var(--app-h) - var(--head-h));
+}
+.panel{background:linear-gradient(180deg,#FFFFFF,#F8F6F1);border:1px solid var(--line);border-radius:var(--r-lg);min-height:0;min-width:0;box-shadow:var(--shadow)}
+.chat-panel{display:flex;flex-direction:column;overflow:hidden;animation:rise .6s cubic-bezier(.2,.8,.2,1) .08s both}
+.catalog{display:flex;flex-direction:column;overflow:hidden;animation:rise .6s cubic-bezier(.2,.8,.2,1) .18s both}
+@keyframes rise{from{opacity:0;transform:translateY(16px)}}
+.catalog.flash{animation:flash 1.2s ease}
+@keyframes flash{0%,100%{box-shadow:var(--shadow)}30%{box-shadow:0 0 0 3px var(--amber),0 0 44px rgba(245,158,11,.35)}}
+
+/* ---- шапка чата + чипы параметров ---- */
+.chat-head{flex:none;display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--line);background:rgba(255,255,255,.7)}
+.bot-face{width:42px;height:42px;flex:none;border-radius:13px;background:var(--grad-a);display:grid;place-items:center;color:var(--on-amber);box-shadow:0 4px 16px rgba(242,101,10,.32)}
+.bot-face svg{width:24px;height:24px}
+.chat-head .who{flex:none}
+.chat-head .who b{font-family:var(--disp);font-size:13px;letter-spacing:.04em;display:block}
+.chat-head .who span{font-size:11px;color:var(--green-ink);font-weight:700;display:flex;align-items:center;gap:5px;margin-top:3px}
+.chat-head .who span i{width:6px;height:6px;border-radius:50%;background:var(--green);display:inline-block}
+.ctx{display:flex;gap:6px;overflow-x:auto;flex:1;min-width:0;padding:4px 2px;scrollbar-width:none;
+  -webkit-mask-image:linear-gradient(90deg,#000 92%,transparent);mask-image:linear-gradient(90deg,#000 92%,transparent)}
+.ctx::-webkit-scrollbar{display:none}
+.ctx:empty{display:none}
+.ctx-chip{flex:none;display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:700;
+  padding:6px 10px;border-radius:999px;border:1px solid var(--line2);background:var(--bg2);color:var(--ink);transition:.18s;white-space:nowrap}
+.ctx-chip svg{width:12px;height:12px;color:var(--amber-ink)}
+.ctx-chip:hover{border-color:var(--amber);background:#FFFAF0;transform:translateY(-1px)}
+.ctx-reset{flex:none;font-size:11px;color:var(--dim);font-weight:700;padding:6px 4px;white-space:nowrap}
+.ctx-reset:hover{color:var(--red-ink)}
+
+/* ---- лента сообщений ---- */
+.msgs{flex:1 1 auto;min-height:0;overflow-y:auto;padding:20px 18px 12px;display:flex;flex-direction:column;gap:14px;overscroll-behavior:contain}
+.msg{display:flex;gap:10px;max-width:100%;animation:pop .38s cubic-bezier(.2,.8,.2,1) both}
+@keyframes pop{from{opacity:0;transform:translateY(12px) scale(.985)}}
+.msg .ava{width:30px;height:30px;flex:none;border-radius:10px;background:var(--grad-a);display:grid;place-items:center;color:var(--on-amber);margin-top:2px;box-shadow:0 2px 8px rgba(242,101,10,.25)}
+.msg .ava svg{width:17px;height:17px}
+.bubble{background:var(--bg2);border:1px solid var(--line);border-radius:16px 16px 16px 5px;
+  padding:11px 14px;font-size:14.5px;line-height:1.55;max-width:640px;overflow-wrap:anywhere;position:relative;box-shadow:0 1px 3px rgba(74,60,34,.05)}
+.bubble p+p{margin-top:8px}
+.bubble .time{display:block;font-size:10px;color:var(--dim);margin-top:6px;text-align:right;font-style:normal}
+.bubble b{color:var(--amber-ink)}
+.bubble .hint{color:var(--mut);font-size:13px}
+.bubble.wide{background:transparent;border:none;padding:0;max-width:680px;width:100%;box-shadow:none}
+.msg.user{justify-content:flex-end}
+.msg.user .bubble{background:var(--grad-a);color:var(--on-amber);border:none;border-radius:16px 16px 5px 16px;
+  font-weight:700;box-shadow:0 6px 18px rgba(242,101,10,.28);max-width:520px}
+.msg.user .bubble .time{color:rgba(42,22,0,.6)}
+.typing{display:inline-flex;gap:5px;padding:6px 2px}
+.typing i{width:7px;height:7px;border-radius:50%;background:var(--amber);animation:bnc 1s infinite}
+.typing i:nth-child(2){animation-delay:.15s;background:var(--orange)}
+.typing i:nth-child(3){animation-delay:.3s;background:var(--cyan)}
+@keyframes bnc{0%,60%,100%{transform:translateY(0);opacity:.5}30%{transform:translateY(-6px);opacity:1}}
+
+/* ---- скан-радар ---- */
+.scan{display:flex;gap:16px;align-items:center;background:linear-gradient(135deg,rgba(14,165,183,.10),rgba(37,99,235,.06));border:1px solid rgba(14,165,183,.35);border-radius:16px;padding:14px 16px;min-width:min(420px,100%)}
+.scan svg{width:64px;height:64px;flex:none}
+.scan .sweep{transform-origin:32px 32px;animation:spin 1.15s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.scan-info{flex:1;min-width:0}
+.scan-info b{font-family:var(--disp);font-size:12px;letter-spacing:.06em;color:var(--cyan-ink);display:block}
+.scan-step{font-size:12.5px;color:var(--mut);margin:6px 0 8px;min-height:18px}
+.scan-track{height:5px;border-radius:4px;background:#E7E2D6;overflow:hidden}
+.scan-track i{display:block;height:100%;width:0;border-radius:4px;background:linear-gradient(90deg,var(--amber),var(--cyan));transition:width .35s ease}
+.scan-count{font-family:var(--disp);font-size:20px;color:var(--cyan-ink);flex:none;text-align:center;line-height:1}
+.scan-count small{display:block;font-family:var(--body);font-size:10px;color:var(--dim);font-weight:700;margin-top:4px}
+
+/* ---- заголовок результатов ---- */
+.res-head{display:flex;align-items:center;gap:9px;margin-bottom:6px}
+.res-head svg{width:18px;height:18px;color:var(--amber-ink);animation:wave 1.6s ease-in-out infinite}
+@keyframes wave{0%,100%{transform:rotate(-6deg)}50%{transform:rotate(8deg)}}
+.res-head b{font-family:var(--disp);font-size:12.5px;letter-spacing:.06em;color:var(--ink)}
+.res-head span{font-size:11.5px;color:var(--green-ink);font-weight:800;margin-left:auto}
+
+/* ---- карточка авто ---- */
+.cards{display:flex;flex-direction:column;gap:10px}
+.car-card{display:grid;grid-template-columns:150px 1fr;background:var(--bg2);border:1px solid var(--line);
+  border-radius:16px;overflow:hidden;transition:.22s;animation:pop .5s cubic-bezier(.2,.8,.2,1) both;box-shadow:0 2px 8px rgba(74,60,34,.06)}
+.car-card:hover{border-color:var(--amber);transform:translateY(-2px);box-shadow:0 12px 26px rgba(74,60,34,.14)}
+.cc-media{position:relative;display:grid;place-items:center;padding:10px 6px;background:radial-gradient(circle at 50% 62%,var(--ccA,rgba(245,158,11,.16)),transparent 72%)}
+.cc-media svg{width:100%;height:auto;transition:transform .3s}
+.car-card:hover .cc-media svg{transform:translateX(4px)}
+.cc-media .hl,.row-media .hl{opacity:.6;transition:.3s}
+.car-card:hover .hl,.row:hover .hl{opacity:1}
+.cc-rank{position:absolute;top:8px;left:8px;font-family:var(--disp);font-size:11px;color:var(--on-amber);background:var(--grad-a);padding:3px 8px;border-radius:8px;font-weight:900}
+.cc-body{padding:12px 14px 12px 6px;min-width:0}
+.cc-top{display:flex;gap:10px;align-items:flex-start;justify-content:space-between}
+.cc-top h4{font-size:14.5px;font-weight:800;line-height:1.25}
+.cc-price{font-family:var(--disp);font-size:16px;color:var(--amber-ink);margin-top:5px;font-weight:700}
+.ring{width:46px;height:46px;flex:none}
+.ring .ring-val{transition:stroke-dashoffset 1.1s cubic-bezier(.2,.7,.2,1)}
+.ring text{font-family:var(--disp);font-weight:700}
+.cc-chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:9px}
+.cc-chips span{font-size:10.5px;font-weight:700;color:var(--mut);background:var(--bg3);border:1px solid var(--line);padding:3px 7px;border-radius:7px;white-space:nowrap}
+.cc-chips span.ev{color:var(--cyan-ink);border-color:rgba(14,165,183,.4);background:rgba(14,165,183,.07)}
+.cc-chips span.hy{color:var(--violet-ink);border-color:rgba(124,58,237,.35);background:rgba(124,58,237,.06)}
+.cc-why{list-style:none;margin-top:9px;display:flex;flex-direction:column;gap:4px}
+.cc-why li{display:flex;gap:7px;font-size:12.5px;color:var(--mut);line-height:1.4;align-items:flex-start}
+.cc-why li svg{width:13px;height:13px;flex:none;color:var(--green);margin-top:2px}
+.cc-why li.warn{color:var(--warn)}
+.cc-why li.warn svg{color:var(--warn)}
+.cc-actions{display:flex;gap:7px;margin-top:11px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;font-weight:800;font-size:13px;
+  border-radius:11px;padding:9px 14px;border:1px solid var(--line2);background:var(--bg2);color:var(--ink);transition:.18s}
+.btn:hover{border-color:var(--amber);background:#FFFAF0;transform:translateY(-1px);box-shadow:0 4px 14px rgba(245,158,11,.18)}
+.btn:active{transform:scale(.96)}
+.btn.primary{background:var(--grad-a);color:var(--on-amber);border:none;box-shadow:0 6px 16px rgba(242,101,10,.3)}
+.btn.primary:hover{background:var(--grad-a);box-shadow:0 8px 22px rgba(242,101,10,.42)}
+.btn.ghost-a{border-color:rgba(245,158,11,.6);color:var(--amber-ink);background:rgba(245,158,11,.07)}
+.btn.tiny{padding:7px 11px;font-size:12px;border-radius:9px}
+.btn:disabled{opacity:.45;pointer-events:none}
+.ibtn{width:32px;height:32px;flex:none;border-radius:9px;border:1px solid var(--line2);background:var(--bg2);display:grid;place-items:center;color:var(--mut);transition:.18s}
+.ibtn svg{width:15px;height:15px}
+.ibtn:hover{color:var(--ink);border-color:var(--amber);background:#FFFAF0;transform:translateY(-1px)}
+.ibtn:active{transform:scale(.9)}
+.ibtn.on[data-fav]{color:var(--red-ink);border-color:rgba(225,29,72,.45);background:rgba(225,29,72,.08)}
+.ibtn.on[data-fav] svg path{fill:currentColor}
+.ibtn.on[data-cmp]{color:var(--cyan-ink);border-color:rgba(14,165,183,.5);background:rgba(14,165,183,.09)}
+
+/* ---- быстрые ответы ---- */
+.quick{flex:none;display:flex;flex-wrap:wrap;gap:7px;padding:8px 18px 4px;max-height:32vh;overflow-y:auto}
+.quick:empty{display:none}
+.qbtn{font-size:12.5px;font-weight:800;padding:9px 14px;border-radius:999px;border:1px solid var(--line2);
+  background:var(--bg2);color:var(--ink);transition:.18s;animation:pop .35s both;box-shadow:0 1px 2px rgba(74,60,34,.05)}
+.qbtn:hover{border-color:var(--amber);color:var(--amber-ink);background:#FFFAF0;transform:translateY(-2px);box-shadow:0 5px 14px rgba(245,158,11,.2)}
+.qbtn:active{transform:scale(.95)}
+.qbtn.primary{background:var(--grad-a);color:var(--on-amber);border:none}
+.qbtn.primary:hover{color:var(--on-amber);background:var(--grad-a);box-shadow:0 7px 18px rgba(242,101,10,.38)}
+
+/* ---- строка ввода ---- */
+.composer{flex:none;position:relative;z-index:3;display:flex;gap:10px;align-items:center;
+  padding:12px 14px calc(12px + env(safe-area-inset-bottom));border-top:1px solid var(--line);background:rgba(255,255,255,.94)}
+.composer .field{flex:1 1 auto;min-width:0;position:relative;display:flex}
+#input{
+  width:100%;height:46px;border-radius:13px;border:1px solid var(--line2);background:var(--bg2);
+  padding:0 15px;font-size:16px;line-height:46px;transition:border-color .2s,box-shadow .2s;
+  -webkit-appearance:none;appearance:none;-webkit-user-select:text;user-select:text;touch-action:manipulation;
+}
+#input::placeholder{color:var(--dim);font-size:13.5px}
+#input:hover{border-color:#B9AF9C}
+#input:focus{outline:none;border-color:var(--amber);box-shadow:0 0 0 3px rgba(245,158,11,.2)}
+.send{width:46px;height:46px;flex:none;border-radius:13px;background:var(--grad-a);display:grid;place-items:center;
+  color:var(--on-amber);transition:.18s;box-shadow:0 6px 16px rgba(242,101,10,.3);touch-action:manipulation}
+.send svg{width:19px;height:19px;pointer-events:none}
+.send:hover{transform:translateY(-2px);box-shadow:0 8px 22px rgba(242,101,10,.45)}
+.send:active{transform:scale(.92)}
+.send.idle{opacity:.5;box-shadow:none}
+.send.fire{animation:fire .35s ease}
+@keyframes fire{0%{transform:scale(1)}40%{transform:scale(.86) rotate(-8deg)}100%{transform:scale(1)}}
+
+/* ============ Каталог ============ */
+.cat-head{flex:none;display:flex;align-items:center;gap:10px;padding:14px 16px 10px}
+.cat-head h3{font-family:var(--disp);font-size:13px;letter-spacing:.08em}
+.cat-head .cnt{font-size:11px;font-weight:800;color:var(--cyan-ink);background:rgba(14,165,183,.1);border:1px solid rgba(14,165,183,.35);padding:3px 8px;border-radius:999px}
+#catClose{display:none;margin-left:auto}
+.search-wrap{flex:none;position:relative;margin:0 16px 10px}
+.search-wrap>span{position:absolute;left:12px;top:50%;transform:translateY(-50%);display:flex;color:var(--dim);pointer-events:none}
+#search{width:100%;height:40px;border-radius:11px;border:1px solid var(--line2);background:var(--bg2);padding:0 12px 0 36px;font-size:16px;-webkit-appearance:none;appearance:none}
+#search::placeholder{color:var(--dim);font-size:13px}
+#search:focus{outline:none;border-color:var(--cyan);box-shadow:0 0 0 3px rgba(14,165,183,.16)}
+.chips-row{flex:none;display:flex;gap:6px;overflow-x:auto;padding:0 16px 10px;scrollbar-width:none}
+.chips-row::-webkit-scrollbar{display:none}
+.fchip{flex:none;font-size:11.5px;font-weight:800;padding:7px 11px;border-radius:999px;border:1px solid var(--line);background:var(--bg2);color:var(--mut);transition:.18s;white-space:nowrap}
+.fchip:hover{color:var(--ink);border-color:var(--line2)}
+.fchip.on{background:rgba(245,158,11,.14);border-color:var(--amber);color:var(--amber-ink)}
+.fchip.on.rd{background:rgba(225,29,72,.09);border-color:var(--red);color:var(--red-ink)}
+.sel-row{flex:none;display:flex;gap:8px;padding:0 16px 10px}
+.sel-row select{flex:1;height:36px;border-radius:10px;border:1px solid var(--line);background:var(--bg2);font-size:12px;font-weight:700;
+  padding:0 28px 0 10px;appearance:none;-webkit-appearance:none;cursor:pointer;min-width:0;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23A85E00' stroke-width='3' stroke-linecap='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 10px center}
+.sel-row select:focus{outline:none;border-color:var(--amber)}
+.presets{flex:none;display:flex;gap:6px;overflow-x:auto;padding:0 16px 10px;border-bottom:1px solid var(--line);scrollbar-width:none}
+.presets::-webkit-scrollbar{display:none}
+.pchip{flex:none;font-size:11px;font-weight:800;padding:6px 10px;border-radius:9px;border:1px dashed rgba(124,58,237,.45);color:var(--violet-ink);background:rgba(124,58,237,.05);transition:.18s;white-space:nowrap}
+.pchip:hover{border-color:var(--violet)}
+.pchip.on{border-style:solid;border-color:var(--violet);background:rgba(124,58,237,.13)}
+.pchip.reset{color:var(--red-ink);border-color:rgba(225,29,72,.4);background:rgba(225,29,72,.05)}
+.car-list{flex:1 1 auto;min-height:0;overflow-y:auto;padding:10px 12px;display:flex;flex-direction:column;gap:7px;overscroll-behavior:contain}
+.row{display:grid;grid-template-columns:76px 1fr auto;gap:10px;align-items:center;padding:8px 10px;
+  border-radius:13px;border:1px solid var(--line);background:var(--bg2);cursor:pointer;transition:.18s}
+.row:hover{border-color:var(--amber);background:#FFFAF0;transform:translateX(3px);box-shadow:0 4px 12px rgba(74,60,34,.09)}
+.row-media{width:76px}
+.row-media svg{width:100%;height:auto;display:block}
+.row-info{min-width:0}
+.row-info b{font-size:13px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row-info span{font-size:10.5px;color:var(--dim);font-weight:600;display:block;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row-info em{font-style:normal;font-family:var(--disp);font-size:12px;color:var(--amber-ink);display:block;margin-top:4px;font-weight:700}
+.row-actions{display:flex;flex-direction:column;gap:5px}
+.row-actions .ibtn{width:28px;height:28px}
+.row-actions .ibtn svg{width:13px;height:13px}
+.empty{padding:44px 20px;text-align:center;color:var(--dim)}
+.empty svg{width:38px;height:38px;margin-bottom:12px;color:var(--line2)}
+.empty p{font-size:13px;margin-bottom:14px;line-height:1.5}
+#trayHost{flex:none}
+.tray{border-top:1px solid var(--line);background:var(--bg3);padding:10px 14px calc(10px + env(safe-area-inset-bottom));display:flex;align-items:center;gap:10px;animation:trayIn .3s cubic-bezier(.2,.8,.2,1)}
+@keyframes trayIn{from{transform:translateY(100%)}}
+.tray-thumbs{display:flex;gap:6px;flex:1;min-width:0;overflow-x:auto;scrollbar-width:none}
+.tray-thumbs::-webkit-scrollbar{display:none}
+.tthumb{position:relative;flex:none;width:56px;height:34px;background:var(--bg2);border:1px solid var(--line2);border-radius:8px;display:grid;place-items:center}
+.tthumb svg.car{width:48px;height:auto}
+.tthumb button{position:absolute;top:-6px;right:-6px;width:16px;height:16px;border-radius:50%;background:var(--red);color:#fff;display:grid;place-items:center;font-size:9px;line-height:1;border:2px solid var(--bg3)}
+.tray-hint{font-size:10px;color:var(--dim);flex:none;font-weight:700}
+
+/* ============ Слои: затемнение без размытия ============ */
+.scrim{position:fixed;inset:0;z-index:60;background:rgba(38,32,22,.42);opacity:0;pointer-events:none;transition:opacity .3s}
+.scrim.show{opacity:1;pointer-events:auto}
+.drawer{position:fixed;top:0;right:0;height:var(--app-h);z-index:70;width:min(432px,100vw);
+  background:var(--bg1);border-left:1px solid var(--line2);box-shadow:-20px 0 60px rgba(50,42,26,.22);
+  transform:translateX(105%);display:flex;flex-direction:column;visibility:hidden;
+  transition:transform .4s cubic-bezier(.2,.8,.2,1),visibility 0s linear .4s}
+.drawer.open{transform:translateX(0);visibility:visible;transition:transform .4s cubic-bezier(.2,.8,.2,1),visibility 0s}
+.dr-scroll{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain}
+.dr-hero{position:relative;padding:16px 18px 6px;background:radial-gradient(circle at 50% 78%,var(--ccA,rgba(245,158,11,.22)),transparent 75%)}
+.dr-close{position:absolute;top:12px;right:12px;z-index:2}
+.dr-hero svg.car{width:100%;max-width:330px;display:block;margin:14px auto 0}
+.dr-badges{display:flex;gap:6px;flex-wrap:wrap;padding-right:40px}
+.badge{font-size:10px;font-weight:800;letter-spacing:.06em;padding:4px 9px;border-radius:7px;text-transform:uppercase}
+.badge.new{background:rgba(22,163,74,.12);color:var(--green-ink);border:1px solid rgba(22,163,74,.35)}
+.badge.used{background:rgba(245,158,11,.14);color:var(--warn);border:1px solid rgba(245,158,11,.45)}
+.badge.ev{background:rgba(14,165,183,.1);color:var(--cyan-ink);border:1px solid rgba(14,165,183,.35)}
+.badge.hy{background:rgba(124,58,237,.09);color:var(--violet-ink);border:1px solid rgba(124,58,237,.32)}
+.dr-body{padding:6px 18px 18px}
+.dr-body h2{font-family:var(--disp);font-size:19px;line-height:1.25;font-weight:700}
+.dr-price{font-family:var(--disp);font-size:22px;color:var(--amber-ink);margin:8px 0 4px;font-weight:900}
+.dr-blurb{font-size:13px;color:var(--mut);line-height:1.5;margin-bottom:14px}
+.dr-sec{font-size:10.5px;font-weight:800;letter-spacing:.14em;color:var(--dim);text-transform:uppercase;margin:16px 0 8px}
+.spec-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.spec{background:var(--bg2);border:1px solid var(--line);border-radius:11px;padding:9px 11px}
+.spec i{font-style:normal;font-size:9.5px;font-weight:800;letter-spacing:.08em;color:var(--dim);text-transform:uppercase;display:block}
+.spec b{font-size:13.5px;margin-top:3px;display:block}
+.bars{display:flex;flex-direction:column;gap:9px}
+.bar-row{display:grid;grid-template-columns:110px 1fr 30px;gap:10px;align-items:center;font-size:12px;font-weight:700;color:var(--mut)}
+.bar-row em{font-style:normal;text-align:right;color:var(--ink);font-size:11.5px}
+.bar{height:6px;border-radius:4px;background:#E7E2D6;overflow:hidden}
+.bar i{display:block;height:100%;width:0;border-radius:4px;background:linear-gradient(90deg,var(--orange),var(--amber),var(--green));transition:width .9s cubic-bezier(.2,.7,.2,1)}
+.pm{list-style:none;display:flex;flex-direction:column;gap:6px}
+.pm li{display:flex;gap:8px;font-size:13px;line-height:1.45;color:var(--mut);align-items:flex-start}
+.pm li svg{width:14px;height:14px;flex:none;margin-top:2px}
+.pm.plus li svg{color:var(--green)}
+.pm.minus li svg{color:var(--red)}
+.cost{display:flex;align-items:center;gap:9px;margin-top:16px;background:rgba(22,163,74,.08);border:1px solid rgba(22,163,74,.32);border-radius:12px;padding:11px 13px;font-size:12.5px;color:var(--green-ink);font-weight:700;line-height:1.4}
+.cost svg{width:17px;height:17px;flex:none}
+.dr-actions{flex:none;display:flex;gap:8px;padding:12px 16px;border-top:1px solid var(--line);background:var(--bg2);padding-bottom:calc(12px + env(safe-area-inset-bottom))}
+.dr-actions .btn.primary{flex:1}
+.dr-actions .ibtn{width:44px;height:44px;border-radius:11px}
+.dr-actions .ibtn svg{width:18px;height:18px}
+
+.modal-wrap{position:fixed;inset:0;z-index:80;display:grid;place-items:center;padding:16px;background:rgba(38,32,22,.46);opacity:0;pointer-events:none;transition:opacity .28s;visibility:hidden}
+.modal-wrap.open{opacity:1;pointer-events:auto;visibility:visible}
+.modal{width:min(880px,100%);max-height:88vh;background:var(--bg2);border:1px solid var(--line2);border-radius:var(--r-lg);display:flex;flex-direction:column;box-shadow:0 30px 70px rgba(50,42,26,.3);transform:translateY(14px) scale(.98);transition:transform .3s cubic-bezier(.2,.8,.2,1)}
+.modal-wrap.open .modal{transform:none}
+.modal-head{flex:none;display:flex;align-items:center;gap:10px;padding:16px 18px;border-bottom:1px solid var(--line)}
+.modal-head h3{font-family:var(--disp);font-size:14px;letter-spacing:.06em}
+.modal-head span{font-size:11.5px;color:var(--dim);font-weight:700}
+.modal-head .ibtn{margin-left:auto}
+.modal-body{overflow:auto;padding:6px 18px 16px}
+.cmp-table{border-collapse:collapse;width:100%;min-width:540px}
+.cmp-table th,.cmp-table td{padding:9px 10px;font-size:12.5px;text-align:center;border-bottom:1px solid var(--line)}
+.cmp-table th{vertical-align:bottom;padding-top:14px}
+.cmp-table td:first-child,.cmp-table th:first-child{text-align:left;color:var(--dim);font-weight:700;font-size:11.5px;width:128px;position:sticky;left:0;background:var(--bg2)}
+.cmp-table tbody tr:nth-child(odd) td{background:rgba(74,60,34,.03)}
+.cmp-table tbody tr:nth-child(odd) td:first-child{background:#FAF8F4}
+.cmp-th{position:relative;min-width:150px}
+.cmp-th svg.car{width:104px;height:auto;margin:0 auto 4px;display:block}
+.cmp-th b{font-size:12.5px;display:block;line-height:1.3}
+.cmp-th em{font-style:normal;font-family:var(--disp);font-size:11.5px;color:var(--amber-ink);display:block;margin-top:4px}
+.cmp-th .rm{position:absolute;top:0;right:0;width:22px;height:22px;border-radius:7px;background:var(--bg3);border:1px solid var(--line2);color:var(--dim);display:grid;place-items:center}
+.cmp-th .rm:hover{color:var(--red-ink);border-color:var(--red)}
+.cmp-th .rm svg{width:11px;height:11px}
+td.best{color:var(--green-ink);font-weight:800;background:rgba(22,163,74,.1)!important}
+td.best::after{content:" ▲";font-size:9px}
+.cmp-note{font-size:11px;color:var(--dim);padding:10px 2px 2px}
+.cmp-foot-btn{margin-top:4px}
+
+.toasts{position:fixed;left:18px;bottom:18px;z-index:95;display:flex;flex-direction:column;gap:8px;max-width:min(360px,calc(100vw - 24px))}
+.toast{display:flex;align-items:center;gap:10px;background:var(--bg2);border:1px solid var(--line2);border-left:3px solid var(--amber);
+  border-radius:12px;padding:11px 13px;font-size:12.5px;font-weight:700;box-shadow:var(--shadow);animation:toastIn .32s cubic-bezier(.2,.8,.2,1)}
+.toast.ok{border-left-color:var(--green)}
+.toast.err{border-left-color:var(--red)}
+.toast.out{animation:toastOut .3s forwards}
+.toast svg{width:15px;height:15px;flex:none;color:var(--amber-ink)}
+.toast.ok svg{color:var(--green-ink)}
+.toast.err svg{color:var(--red-ink)}
+.toast button{color:var(--amber-ink);font-weight:800;font-size:12px;text-decoration:underline;flex:none;margin-left:auto}
+@keyframes toastIn{from{opacity:0;transform:translateY(14px)}}
+@keyframes toastOut{to{opacity:0;transform:translateY(10px)}}
+
+.cmd-list{display:flex;flex-direction:column;gap:6px;margin-top:10px}
+.cmd-list div{display:flex;gap:9px;align-items:baseline;font-size:12.5px;color:var(--mut);flex-wrap:wrap}
+.cmd-list code{font-family:var(--body);font-weight:800;font-size:11.5px;color:var(--cyan-ink);background:rgba(14,165,183,.08);border:1px solid rgba(14,165,183,.3);padding:2px 8px;border-radius:7px;white-space:nowrap}
+
+/* ============ Адаптив ============ */
+@media (max-width:1120px){.layout{grid-template-columns:minmax(0,1fr) 344px}}
+@media (max-width:940px){
+  .layout{grid-template-columns:1fr;padding:12px}
+  #catBtn{display:inline-flex}
+  .catalog{position:fixed;top:var(--head-h);right:0;height:calc(var(--app-h) - var(--head-h));z-index:61;
+    width:min(400px,94vw);border-radius:0;border-right:none;background:var(--bg1);
+    transform:translateX(105%);animation:none;visibility:hidden;
+    transition:transform .38s cubic-bezier(.2,.8,.2,1),visibility 0s linear .38s}
+  .catalog.open{transform:translateX(0);visibility:visible;transition:transform .38s cubic-bezier(.2,.8,.2,1),visibility 0s}
+  #catClose{display:grid}
+}
+@media (max-width:760px){.status{display:none}}
+@media (max-width:600px){
+  .logo-t .sub{display:none}
+  .hbtn{padding:0 9px}
+  header{padding:0 12px;gap:10px}
+  .msgs{padding:16px 12px 10px}
+  .quick{padding:8px 12px 4px}
+  .bubble{font-size:14px}
+  .toasts{left:12px;bottom:12px}
+  .composer{padding:10px 12px calc(10px + env(safe-area-inset-bottom))}
+}
+@media (max-width:480px){
+  .car-card{grid-template-columns:1fr}
+  .cc-media{padding:12px 26px 2px}
+  .cc-media svg{max-width:230px}
+  .cc-body{padding:10px 14px 14px}
+  .scan{min-width:0}
+  .scan-count{display:none}
+}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.001s!important;transition-duration:.001s!important}}
+</style>
+</head>
+<body>
+
+<div class="bg" aria-hidden="true">
+  <div class="grid"></div>
+  <div class="blob a"></div><div class="blob b"></div><div class="blob c"></div>
+  <div class="grain"></div>
+</div>
+
+<header>
+  <div class="logo">
+    <svg viewBox="0 0 36 36" fill="none" aria-hidden="true">
+      <circle cx="18" cy="18" r="16.5" fill="#FFF6E6" stroke="#E0D8C6"/>
+      <path d="M7 24a12.5 12.5 0 0 1 22 0" stroke="url(#lgA)" stroke-width="3.2" stroke-linecap="round"/>
+      <path d="M8.5 17.5l2 1M18 9.5v2.4M27.5 17.5l-2 1" stroke="#9A9384" stroke-width="1.6" stroke-linecap="round"/>
+      <g class="needle"><path d="M18 22L24.5 13.5" stroke="#E11D48" stroke-width="3" stroke-linecap="round"/></g>
+      <circle cx="18" cy="22" r="2.6" fill="#A85E00"/>
+      <defs><linearGradient id="lgA" x1="7" y1="24" x2="29" y2="24"><stop stop-color="#F2650A"/><stop offset="1" stop-color="#FFB020"/></linearGradient></defs>
+    </svg>
+    <div class="logo-t">
+      <div class="word">Car<em>Карыч</em></div>
+      <div class="sub">офлайн · один файл · без API</div>
+    </div>
+  </div>
+  <div class="status"><span class="dot"></span>Карыч на связи · база: <b id="baseCnt" style="color:var(--ink)"></b></div>
+  <div class="h-actions">
+    <button class="hbtn" id="resetBtn" type="button" title="Начать диалог заново"></button>
+    <button class="hbtn" id="catBtn" type="button" title="Каталог автомобилей"></button>
+  </div>
+</header>
+
+<main class="layout">
+  <section class="panel chat-panel" aria-label="Чат с ботом">
+    <div class="chat-head">
+      <div class="bot-face" id="botFace"></div>
+      <div class="who"><b>Карыч</b><span><i></i>автоподборщик · онлайн</span></div>
+      <div class="ctx" id="ctxChips" aria-label="Выбранные параметры"></div>
+    </div>
+    <div class="msgs" id="msgs" aria-live="polite"></div>
+    <div class="quick" id="quick"></div>
+    <form class="composer" id="composer" onsubmit="return false" autocomplete="off">
+      <div class="field">
+        <input id="input" type="text" inputmode="text" enterkeyhint="send"
+               autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+               placeholder="Напишите: «кроссовер до 2 млн, автомат»…" aria-label="Сообщение боту">
+      </div>
+      <button class="send idle" id="sendBtn" type="button" title="Отправить (Enter)" aria-label="Отправить"></button>
+    </form>
+  </section>
+
+  <aside class="panel catalog" id="catalog" aria-label="Каталог автомобилей">
+    <div class="cat-head">
+      <h3>КАТАЛОГ</h3><span class="cnt" id="catCount"></span>
+      <button class="ibtn" id="catClose" type="button" title="Закрыть каталог"></button>
+    </div>
+    <div class="search-wrap"><span id="searchIco"></span><input id="search" type="text" placeholder="Марка, модель… например «Geely»" autocomplete="off" aria-label="Поиск по каталогу"></div>
+    <div class="chips-row" id="bodyChips"></div>
+    <div class="sel-row">
+      <select id="sortSel" aria-label="Сортировка">
+        <option value="priceAsc">Цена ↑</option><option value="priceDesc">Цена ↓</option>
+        <option value="power">Мощнее</option><option value="year">Новее</option><option value="rel">Надёжнее</option>
+      </select>
+      <select id="condSel" aria-label="Состояние">
+        <option value="all">Все</option><option value="new">Новые</option><option value="used">С пробегом</option>
+      </select>
+      <button class="fchip" id="favToggle" type="button" title="Показать избранное"></button>
+    </div>
+    <div class="presets" id="presets"></div>
+    <div class="car-list" id="carList"></div>
+    <div id="trayHost"></div>
+  </aside>
+</main>
+
+<div class="scrim" id="scrim"></div>
+<aside class="drawer" id="drawer" aria-label="Досье автомобиля"></aside>
+<div class="modal-wrap" id="cmpWrap" aria-label="Сравнение автомобилей"><div class="modal" id="cmpModal"></div></div>
+<div class="toasts" id="toasts"></div>
+<noscript><div style="position:fixed;inset:0;background:#EDEAE3;color:#1B1F26;display:grid;place-items:center;z-index:999;font-family:sans-serif">Для работы включите JavaScript 🙂</div></noscript>
+
+<script>
+'use strict';
+/* ================================================================
+   CarКарыч · офлайн чат-бот подбора авто. Vanilla JS, без зависимостей.
+================================================================ */
+
+/* ---------- утилиты ---------- */
+const $=id=>document.getElementById(id);
+const qsa=(s,el=document)=>Array.prototype.slice.call(el.querySelectorAll(s));
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const norm=s=>String(s).toLowerCase().replace(/ё/g,'е').replace(/\s+/g,' ').trim();
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+let _uid=0; const uid=()=>'u'+(++_uid);
+const NF=new Intl.NumberFormat('ru-RU');
+const fmtPrice=n=>NF.format(Math.round(n))+' ₽';
+const fmtShort=n=>n>=1e6?String(+(n/1e6).toFixed(n%1e6?1:0)).replace('.',',')+' млн':Math.round(n/1e3)+' тыс';
+const fmtB=n=>n===Infinity?'без ограничений':'до '+fmtShort(n)+' ₽';
+const strip=h=>h.replace(/<[^>]*>/g,'');
+const nowTime=()=>new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'});
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+function shade(hex,amt){const n=parseInt(hex.slice(1),16);const r=clamp((n>>16)+amt,0,255),g=clamp((n>>8&255)+amt,0,255),b=clamp((n&255)+amt,0,255);return 'rgb('+r+','+g+','+b+')';}
+const hexA=(hex,a)=>hex+a;
+const isMobile=()=>window.matchMedia('(max-width:940px)').matches;
+
+/* ---------- иконки ---------- */
+const IC={
+gauge:'<path d="M4 17a9 9 0 0 1 16 0"/><path d="M12 15l4.2-5.2"/><circle cx="12" cy="16" r="1.6" fill="currentColor" stroke="none"/><path d="M4.5 12.5l1.4.8M12 7v1.8M19.5 12.5l-1.4.8"/>',
+send:'<path d="M4 12l16-7-4.5 14-3.7-5.3L4 12z"/><path d="M11.8 13.7L20 5"/>',
+search:'<circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21"/>',
+x:'<path d="M6 6l12 12M18 6L6 18"/>',
+heart:'<path d="M12 20s-7.5-4.6-9.3-9.2C1.4 7.4 3.6 4.5 6.7 4.5c2 0 3.6 1.1 5.3 3.1 1.7-2 3.3-3.1 5.3-3.1 3.1 0 5.3 2.9 4 6.3C19.5 15.4 12 20 12 20z"/>',
+cmp:'<path d="M8 7H21M8 7l3-3M8 7l3 3M16 17H3M16 17l-3-3M16 17l-3 3"/>',
+reset:'<path d="M4 10a8 8 0 1 1 2 6.5"/><path d="M4 16v-6h6"/>',
+check:'<path d="M4 12.5l5 5L20 6.5"/>',
+minus:'<path d="M5 12h14"/>',
+grid:'<rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/>',
+flag:'<path d="M5 21V4"/><path d="M5 4c4-2 7 2 14 0v9c-7 2-10-2-14 0"/>',
+alert:'<path d="M12 3l10 17H2L12 3z"/><path d="M12 10v4M12 17.5v.5"/>',
+wallet:'<rect x="3" y="6" width="18" height="13" rx="2.5"/><path d="M16 12.5h2"/><path d="M3 9h18"/>',
+car:'<path d="M5 16l1.4-5A2 2 0 0 1 8.3 9.5h7.4a2 2 0 0 1 1.9 1.5L19 16"/><rect x="3.5" y="15.5" width="17" height="4" rx="1.5"/><circle cx="7.5" cy="19.5" r="1.4"/><circle cx="16.5" cy="19.5" r="1.4"/>',
+road:'<path d="M4 20L10 4M20 20L14 4"/><path d="M12 5v2.5M12 11v2.5M12 17v2.5"/>',
+gear:'<circle cx="12" cy="12" r="3.2"/><path d="M12 3v2.5M12 18.5V21M3 12h2.5M18.5 12H21M5.6 5.6l1.8 1.8M16.6 16.6l1.8 1.8M18.4 5.6l-1.8 1.8M7.4 16.6l-1.8 1.8"/>',
+fuel:'<path d="M5 21V6a2 2 0 0 1 2-2h5a2 2 0 0 1 2 2v15"/><path d="M4 21h11"/><path d="M14 10h2.5a1.5 1.5 0 0 1 1.5 1.5v5a1.5 1.5 0 0 0 3 0V9l-2.5-2.5"/><path d="M7 8h5"/>',
+target:'<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1" fill="currentColor" stroke="none"/>',
+spark:'<path d="M12 3l1.8 5.7L19.5 10l-5.7 1.8L12 17.5l-1.8-5.7L4.5 10l5.7-1.3L12 3z"/>',
+info:'<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 7.5v.5"/>',
+soff:'<circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21"/><path d="M8 10.5h5"/>'
+};
+const ico=(n,s)=>'<svg viewBox="0 0 24 24" width="'+(s||18)+'" height="'+(s||18)+'" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+(IC[n]||'')+'</svg>';
+
+/* ---------- база автомобилей ---------- */
+const CARS=[
+{id:1,brand:'Lada',model:'Granta',year:2025,cond:'new',price:1060000,body:'sedan',fuel:'petrol',gb:'МКПП',hp:90,use:6.5,drive:'FWD',clr:178,trunk:520,acc:11.2,rel:4.0,comf:2.8,dyn:2.5,eco:4.5,tags:['city','work'],color:'#C8CCD2',alias:'гранта',blurb:'Рабочая лошадка за минимальные деньги.',plus:['Дешёвые запчасти','Клиренс 178 мм','Багажник 520 л'],minus:['Слабая шумоизоляция','Скромная динамика','Простой салон']},
+{id:2,brand:'Lada',model:'Granta',year:2020,cond:'used',price:690000,body:'sedan',fuel:'petrol',gb:'МКПП',hp:87,use:6.8,drive:'FWD',clr:178,trunk:520,acc:12.5,rel:3.9,comf:2.5,dyn:2.3,eco:4.3,tags:['city','work'],color:'#AEB4BC',alias:'гранта',blurb:'Самый дешёвый вход в автовладение.',plus:['Цена ниже рынка','Ремонт в любом гараже','Неприхотливый мотор'],minus:['Возраст и пробег','Базовая комплектация','Следы коррозии']},
+{id:3,brand:'Lada',model:'Vesta',year:2025,cond:'new',price:1520000,body:'sedan',fuel:'petrol',gb:'Вариатор',hp:106,use:7.3,drive:'FWD',clr:178,trunk:480,acc:12.2,rel:4.1,comf:3.5,dyn:2.9,eco:4.1,tags:['city','family'],color:'#2C6E8F',alias:'веста',blurb:'Современная Lada с тёплыми опциями.',plus:['Современный салон','Тёплый пакет','Дешёвое ТО'],minus:['Вариатор не любит букс','Скромный разгон','Шумные шины']},
+{id:4,brand:'Lada',model:'Vesta SW Cross',year:2025,cond:'new',price:1830000,body:'wagon',fuel:'petrol',gb:'Вариатор',hp:106,use:7.4,drive:'FWD',clr:203,trunk:480,acc:12.0,rel:4.0,comf:3.5,dyn:3.0,eco:4.0,tags:['family','travel','city'],color:'#C33B33',alias:'веста св|vesta sw',blurb:'Универсал с клиренсом кроссовера.',plus:['Клиренс 203 мм','Универсальный кузов','Обвес и рейлинги'],minus:['Мотор без запаса','Вариатор','Простой пластик']},
+{id:5,brand:'Lada',model:'Niva Travel',year:2025,cond:'new',price:1310000,body:'offroad',fuel:'petrol',gb:'МКПП',hp:80,use:10.5,drive:'AWD',clr:220,trunk:320,acc:19.0,rel:3.6,comf:2.2,dyn:1.8,eco:2.5,tags:['offroad','work'],color:'#3E5C46',alias:'нива',blurb:'Легенда бездорожья с блокировкой.',plus:['Постоянный полный привод','Понижайка и блокировка','Проходимость легенды'],minus:['80 л.с. — мало','Шумно на трассе','Аппетит 10+ л']},
+{id:6,brand:'Москвич',model:'3',year:2025,cond:'new',price:1990000,body:'cross',fuel:'petrol',gb:'Вариатор',hp:109,use:7.6,drive:'FWD',clr:170,trunk:410,acc:12.5,rel:3.4,comf:3.4,dyn:3.0,eco:3.8,tags:['city','family'],color:'#2E6FB7',alias:'москвич',blurb:'Много оснащения за вменяемые деньги.',plus:['Богатая комплектация','Панорамная крыша','Цена за оснащение'],minus:['Скромный клиренс','Молодая модель','Вариатор']},
+{id:7,brand:'Solaris',model:'HS',year:2025,cond:'new',price:2180000,body:'sedan',fuel:'petrol',gb:'АКПП',hp:123,use:7.2,drive:'FWD',clr:160,trunk:480,acc:11.3,rel:4.4,comf:3.5,dyn:3.0,eco:4.0,tags:['city','work'],color:'#D6D9DD',alias:'солярис hs',blurb:'Проверенная платформа под новым именем.',plus:['Проверенная платформа','Ликвидность на вторичке','Дешёвый сервис'],minus:['Таксишная репутация','Простой салон','Атмосферник без турбо']},
+{id:8,brand:'Chery',model:'Tiggo 4 Pro',year:2025,cond:'new',price:2149000,body:'cross',fuel:'petrol',gb:'Вариатор',hp:147,use:8.3,drive:'FWD',clr:190,trunk:380,acc:10.9,rel:3.7,comf:3.8,dyn:3.3,eco:3.5,tags:['city','family'],color:'#A33B4F',alias:'тигго 4|tiggo 4',blurb:'Компактный кроссовер с богатым оснащением.',plus:['Оснащение за свои деньги','Клиренс 190 мм','Тёплый пакет'],minus:['Вариатор','Шумоизоляция средняя','Расход в городе']},
+{id:9,brand:'Haval',model:'Jolion',year:2025,cond:'new',price:2349000,body:'cross',fuel:'petrol',gb:'Робот',hp:143,use:8.2,drive:'FWD',clr:190,trunk:337,acc:9.8,rel:3.9,comf:4.0,dyn:3.8,eco:3.5,tags:['city','family'],color:'#7A8494',alias:'джолион|jolion',blurb:'Бестселлер: резвый турбо и свежий салон.',plus:['Резвый 1.5T','Современная мультимедиа','Гарантия 5 лет'],minus:['Багажник 337 л','Робот в пробках','Только передний привод']},
+{id:10,brand:'Omoda',model:'C5',year:2025,cond:'new',price:2449000,body:'cross',fuel:'petrol',gb:'Вариатор',hp:147,use:8.4,drive:'FWD',clr:190,trunk:380,acc:10.5,rel:3.7,comf:4.0,dyn:3.5,eco:3.5,tags:['city','family'],color:'#B7C0C8',alias:'омода|omoda',blurb:'Дизайн, который оборачивают вслед.',plus:['Дизайн выделяется','Камеры 360°','Клиренс 190 мм'],minus:['Вариатор','Обзорность назад','Глянцевый пластик']},
+{id:11,brand:'Geely',model:'Coolray',year:2025,cond:'new',price:2539000,body:'cross',fuel:'petrol',gb:'Робот',hp:147,use:7.9,drive:'FWD',clr:180,trunk:330,acc:8.6,rel:4.0,comf:4.0,dyn:4.3,eco:3.6,tags:['city'],color:'#E8641B',alias:'кулрей|coolray',blurb:'Горячий хэтч-кроссовер для драйвера.',plus:['Разгон 8.6 с','Отличная управляемость','Спортивный характер'],minus:['Маленький багажник','Жёсткая подвеска','Робот DCT']},
+{id:12,brand:'Changan',model:'UNI-V',year:2025,cond:'new',price:2699000,body:'sedan',fuel:'petrol',gb:'Робот',hp:181,use:7.4,drive:'FWD',clr:155,trunk:380,acc:7.5,rel:3.8,comf:4.1,dyn:4.5,eco:3.7,tags:['city','travel'],color:'#8E9AA8',alias:'юни-в|uni-v|univ',blurb:'Лифтбек со спойлером и характером.',plus:['181 л.с. и лифтбек','Выдвижной спойлер','Богатый салон'],minus:['Низкий клиренс','Робот','Заниженная посадка']},
+{id:13,brand:'Chery',model:'Tiggo 7 Pro Max',year:2025,cond:'new',price:2749000,body:'cross',fuel:'petrol',gb:'Робот',hp:150,use:8.6,drive:'FWD',clr:190,trunk:475,acc:9.8,rel:3.8,comf:4.2,dyn:3.7,eco:3.4,tags:['family','travel'],color:'#B0324B',alias:'тигго 7|tiggo 7',blurb:'Семейный формат с панорамой и простором.',plus:['Багажник 475 л','Панорама и экокожа','Простор сзади'],minus:['Робот 7DCT','Расход в городе','Только передний привод']},
+{id:14,brand:'Haval',model:'Dargo',year:2025,cond:'new',price:3299000,body:'cross',fuel:'petrol',gb:'Робот',hp:192,use:9.8,drive:'AWD',clr:200,trunk:483,acc:9.5,rel:3.8,comf:4.2,dyn:3.9,eco:2.9,tags:['offroad','travel'],color:'#3C4650',alias:'дарго|dargo',blurb:'Брутальный «почти внедорожник» с AWD.',plus:['Полный привод и 200 мм','Брутальный дизайн','192 л.с.'],minus:['Аппетит около 10 л','Робот','Крупные габариты']},
+{id:15,brand:'Exeed',model:'LX',year:2025,cond:'new',price:3490000,body:'cross',fuel:'petrol',gb:'Робот',hp:186,use:8.8,drive:'AWD',clr:185,trunk:412,acc:9.5,rel:3.8,comf:4.4,dyn:3.9,eco:3.3,tags:['family','travel'],color:'#30343C',alias:'эксид|exeed',blurb:'Премиальная ветка Chery с полным приводом.',plus:['Премиальный салон','Полный привод','Тихий на трассе'],minus:['Цена выше конкурентов','Робот','Дорогое КАСКО']},
+{id:16,brand:'Geely',model:'Monjaro',year:2025,cond:'new',price:4599000,body:'cross',fuel:'petrol',gb:'АКПП',hp:238,use:9.3,drive:'AWD',clr:200,trunk:562,acc:7.7,rel:4.1,comf:4.7,dyn:4.6,eco:2.9,tags:['family','travel'],color:'#1F4D3A',alias:'монжаро|monjaro',blurb:'Флагман: 238 сил, AWD и салон бизнес-класса.',plus:['238 л.с. и AWD','Салон уровня премиум','Багажник 562 л'],minus:['Расход 9+ л','Цена под 4,6 млн','Дорогие шины R20']},
+{id:17,brand:'Evolute',model:'i-Pro',year:2025,cond:'new',price:2090000,body:'sedan',fuel:'ev',gb:'Редуктор',hp:150,use:14.5,drive:'FWD',clr:160,trunk:502,acc:9.5,range:380,rel:3.5,comf:3.6,dyn:3.8,eco:4.8,tags:['city','work'],color:'#3FA9FF',alias:'эволют|evolute|i-pro',blurb:'Российский электроседан для города и такси.',plus:['~87 ₽ на 100 км','Багажник 502 л','Низкий транспортный налог'],minus:['Зимой пробег −30%','Зарядок пока мало','Простой салон']},
+{id:18,brand:'Nissan',model:'Leaf',year:2020,cond:'used',price:1250000,body:'hatch',fuel:'ev',gb:'Редуктор',hp:150,use:15.5,drive:'FWD',clr:155,trunk:370,acc:7.9,range:270,rel:4.1,comf:3.5,dyn:3.9,eco:4.7,tags:['city'],color:'#4C7FB8',alias:'лиф|leaf',blurb:'Самый доступный вход в мир электро.',plus:['Дешёвый вход в электро','Юркий в городе','Надёжный Nissan'],minus:['Батарея без термоконтроля','270 км летом, ~180 зимой','CHAdeMO-зарядки редки']},
+{id:19,brand:'Tesla',model:'Model 3',year:2022,cond:'used',price:3190000,body:'sedan',fuel:'ev',gb:'Редуктор',hp:283,use:15.0,drive:'RWD',clr:140,trunk:542,acc:6.1,range:430,rel:4.0,comf:4.3,dyn:4.7,eco:4.6,tags:['city','travel'],color:'#B23A48',alias:'тесла|tesla|модель 3',blurb:'Гаджет на колёсах с автопилотом.',plus:['Разгон 6.1 с','Автопилот и OTA-обновления','Быстрые суперчарджеры'],minus:['Сервис только в столицах','Низкий клиренс','Дорогая страховка']},
+{id:20,brand:'Zeekr',model:'001',year:2024,cond:'used',price:4990000,body:'wagon',fuel:'ev',gb:'Редуктор',hp:544,use:18.5,drive:'AWD',clr:150,trunk:539,acc:3.8,range:580,rel:4.0,comf:4.8,dyn:5.0,eco:4.2,tags:['travel','city'],color:'#2FD6E8',alias:'зикр|зекр|zeekr',blurb:'Электро-универсал с разгоном суперкара.',plus:['3.8 с до сотни','Пневмоподвеска','Запас хода 580 км'],minus:['Цена под 5 млн','Дорогой кузовной ремонт','Ширина почти 2 м']},
+{id:21,brand:'Honda',model:'Fit',year:2019,cond:'used',price:1450000,body:'hatch',fuel:'hybrid',gb:'Вариатор',hp:110,use:4.8,drive:'FWD',clr:150,trunk:363,acc:10.5,rel:4.7,comf:3.3,dyn:3.2,eco:4.9,tags:['city'],color:'#9FB4C8',alias:'фит|fit|джаз',blurb:'Гибридный терминатор городских пробок.',plus:['4.8 л на сотню','Салон-трансформер','Хондовская надёжность'],minus:['Правый руль','Маленький клиренс','Шумоизоляция']},
+{id:22,brand:'Toyota',model:'Prius',year:2019,cond:'used',price:2290000,body:'hatch',fuel:'hybrid',gb:'Вариатор',hp:122,use:4.5,drive:'FWD',clr:140,trunk:502,acc:10.6,rel:4.9,comf:4.0,dyn:3.0,eco:5.0,tags:['city','travel','work'],color:'#7FA8D9',alias:'приус|prius',blurb:'Эталон гибридной экономии и ресурса.',plus:['Легендарная надёжность','4.5 л в городе','Багажник 502 л'],minus:['Специфичный дизайн','Батарея с пробегом','Спокойная динамика']},
+{id:23,brand:'Hyundai',model:'Solaris',year:2021,cond:'used',price:1490000,body:'sedan',fuel:'petrol',gb:'АКПП',hp:123,use:7.2,drive:'FWD',clr:160,trunk:480,acc:11.3,rel:4.6,comf:3.4,dyn:3.0,eco:4.0,tags:['city','work'],color:'#C0C6CE',alias:'солярис|solaris',blurb:'Народный седан с ресурсным мотором.',plus:['Ресурсный мотор','Дешёвые запчасти','Высокая ликвидность'],minus:['Риск после такси','Простой салон','Угоняемость']},
+{id:24,brand:'Kia',model:'Rio',year:2019,cond:'used',price:1190000,body:'sedan',fuel:'petrol',gb:'АКПП',hp:123,use:7.3,drive:'FWD',clr:160,trunk:480,acc:11.4,rel:4.6,comf:3.3,dyn:3.0,eco:4.0,tags:['city','work'],color:'#C4CAD2',alias:'рио|rio',blurb:'Надёжная связка 1.6 и классического автомата.',plus:['Надёжная связка 1.6+6AT','Дешёвое ТО','Компактность'],minus:['Проверять на такси','Жёсткая подвеска','Шумные шины']},
+{id:25,brand:'Kia',model:'Rio X',year:2021,cond:'used',price:1640000,body:'hatch',fuel:'petrol',gb:'АКПП',hp:123,use:7.4,drive:'FWD',clr:195,trunk:390,acc:11.2,rel:4.6,comf:3.5,dyn:3.0,eco:4.0,tags:['city','family'],color:'#CE7A2E',alias:'рио х|rio x',blurb:'Rio с клиренсом 195 мм — город без бордюрного страха.',plus:['Клиренс 195 мм','Надёжность Rio','Обвес и рейлинги'],minus:['Багажник 390 л','Риск после такси','Цена за возраст']},
+{id:26,brand:'Volkswagen',model:'Polo',year:2021,cond:'used',price:1750000,body:'sedan',fuel:'petrol',gb:'АКПП',hp:110,use:7.0,drive:'FWD',clr:160,trunk:460,acc:10.4,rel:4.5,comf:3.6,dyn:3.0,eco:4.1,tags:['city','work'],color:'#E4E7EA',alias:'поло|polo',blurb:'Немецкая эргономика и крепкий кузов.',plus:['Немецкая эргономика','Крепкий кузов','Автомат Aisin 6AT'],minus:['1.6 MPI без запаса','Таксишное прошлое','Дорогие оригиналы']},
+{id:27,brand:'Skoda',model:'Octavia Combi',year:2020,cond:'used',price:2390000,body:'wagon',fuel:'petrol',gb:'Робот',hp:150,use:6.9,drive:'FWD',clr:155,trunk:640,acc:8.9,rel:4.3,comf:4.3,dyn:3.9,eco:4.1,tags:['family','travel','work'],color:'#6B7480',alias:'октавия|octavia',blurb:'Багажник-пещера и турбо-тяга.',plus:['Багажник 640 л','1.4 TSI едет','Эргономика Simply Clever'],minus:['DSG требует ухода','Низкий клиренс','Цена обслуживания']},
+{id:28,brand:'Renault',model:'Duster',year:2021,cond:'used',price:1890000,body:'cross',fuel:'diesel',gb:'МКПП',hp:109,use:5.9,drive:'AWD',clr:210,trunk:408,acc:13.2,rel:4.4,comf:3.3,dyn:2.8,eco:4.4,tags:['offroad','travel','work'],color:'#7C5A3A',alias:'дастер|duster',blurb:'Дизельный проходимец для дачи и рыбалки.',plus:['210 мм и полный привод','Дизель 5.9 л','Неубиваемая подвеска'],minus:['Только механика','Спартанский салон','Шумно на скорости']},
+{id:29,brand:'Kia',model:'K5',year:2021,cond:'used',price:2690000,body:'sedan',fuel:'petrol',gb:'АКПП',hp:150,use:7.8,drive:'FWD',clr:155,trunk:510,acc:9.6,rel:4.4,comf:4.4,dyn:3.7,eco:3.6,tags:['travel','family'],color:'#7D2A35',alias:'к5|кей5',blurb:'Бизнес-седан с дизайном, который не стареет.',plus:['Дизайн до сих пор свежий','Простор сзади','Багажник 510 л'],minus:['2.0 без турбо','Дорогая страховка','Низкий клиренс']},
+{id:30,brand:'Toyota',model:'Camry',year:2021,cond:'used',price:3350000,body:'sedan',fuel:'petrol',gb:'АКПП',hp:181,use:8.3,drive:'FWD',clr:155,trunk:524,acc:8.7,rel:4.9,comf:4.6,dyn:4.0,eco:3.4,tags:['travel','family','work'],color:'#23262B',alias:'камри|camry',blurb:'Эталон надёжности и ликвидности.',plus:['Эталон надёжности','Ликвидность навсегда','Комфорт бизнес-класса'],minus:['Угоняемость','Цена на вторичке','Расход 8+ л']},
+{id:31,brand:'Mazda',model:'CX-5',year:2020,cond:'used',price:3150000,body:'cross',fuel:'petrol',gb:'АКПП',hp:150,use:8.4,drive:'AWD',clr:192,trunk:442,acc:10.2,rel:4.6,comf:4.5,dyn:3.7,eco:3.5,tags:['family','travel'],color:'#8E1F2F',alias:'сх-5|cx-5|цх5|мазда',blurb:'Японская сборка и премиальные ощущения.',plus:['Японская сборка','Премиальный салон','Честный автомат'],minus:['2.0 без турбо','Дорогие запчасти','Мультимедиа устарела']},
+{id:32,brand:'Toyota',model:'RAV4',year:2021,cond:'used',price:3590000,body:'cross',fuel:'petrol',gb:'Вариатор',hp:149,use:8.1,drive:'AWD',clr:195,trunk:580,acc:10.7,rel:4.9,comf:4.4,dyn:3.4,eco:3.7,tags:['family','travel','offroad'],color:'#6E7F52',alias:'рав4|рав 4|rav4|равчик',blurb:'Семейный кроссовер, который не ломается.',plus:['Надёжность Toyota','Багажник 580 л','Высокая ликвидность'],minus:['Вариатор','Высокая цена','Угоняемость']},
+{id:33,brand:'BMW',model:'320d',year:2019,cond:'used',price:2890000,body:'sedan',fuel:'diesel',gb:'АКПП',hp:190,use:5.4,drive:'RWD',clr:140,trunk:480,acc:7.1,rel:4.0,comf:4.6,dyn:4.8,eco:4.3,tags:['travel'],color:'#274C77',alias:'бмв|bmw|320|бэха',blurb:'Драйв, тяга и 5.4 л на сотню по трассе.',plus:['190 л.с. и 5.4 л','Идеальная развесовка','Образцовый автомат ZF 8HP'],minus:['Дорогое обслуживание','Задний привод зимой','Возраст и пробег']},
+{id:34,brand:'УАЗ',model:'Патриот',year:2024,cond:'new',price:1725000,body:'offroad',fuel:'petrol',gb:'МКПП',hp:150,use:13.5,drive:'AWD',clr:210,trunk:650,acc:14.0,rel:3.0,comf:2.6,dyn:2.4,eco:2.0,tags:['offroad','work'],color:'#4A5D3A',alias:'патриот|patriot|уаз',blurb:'Рама, мосты и багажник-ангар.',plus:['Рама и мосты','Багажник 650 л','Проходимость танка'],minus:['Расход 13+ л','Качество сборки','Шум и вибрации']}
+];
+
+/* ---------- словари ---------- */
+const BODY_RU={sedan:'Седан',cross:'Кроссовер',hatch:'Хэтчбек',wagon:'Универсал',offroad:'Внедорожник',any:'Не важно'};
+const USAGE_RU={city:'Город',family:'Семья и дети',travel:'Трасса и путешествия',offroad:'Дача и бездорожье',work:'Работа и перевозки',any:'Не важно'};
+const FUEL_RU={petrol:'Бензин',diesel:'Дизель',hybrid:'Гибрид',ev:'Электро',any:'Не важно'};
+const GEAR_RU={auto:'Автомат',manual:'Механика',any:'Не важно'};
+const PRI_RU={reliability:'Надёжность',comfort:'Комфорт',dynamics:'Динамика',economy:'Экономичность',any:'Не важно'};
+const DRIVE_RU={FWD:'Передний',RWD:'Задний',AWD:'Полный'};
+const CHIP_ICO={budget:'wallet',body:'car',usage:'road',gearbox:'gear',fuel:'fuel',priority:'target'};
+const KEY_LABEL={budget:'бюджет',body:'кузов',usage:'сценарий',gearbox:'коробку',fuel:'топливо',priority:'приоритет'};
+const ORDER=['budget','body','usage','gearbox','fuel','priority'];
+const QUESTIONS={
+ budget:{text:'С чего начнём — <b>какой бюджет</b>? Жмите кнопку или пишите своими словами, например «до 1,8 млн».',opts:['До 800 тыс','До 1,5 млн','До 2,5 млн','До 4 млн','Без ограничений']},
+ body:{text:'Какой <b>кузов</b> по душе?',opts:['Седан','Кроссовер','Хэтчбек','Универсал','Внедорожник','Не важно']},
+ usage:{text:'Где машина будет <b>жить</b> чаще всего?',opts:['Город','Семья и дети','Трасса и путешествия','Дача и бездорожье','Работа и перевозки','Не важно']},
+ gearbox:{text:'<b>Коробка передач</b>?',opts:['Автомат','Механика','Не важно']},
+ fuel:{text:'Что заливаем… или заряжаем? <b>Топливо</b>:',opts:['Бензин','Дизель','Гибрид','Электро','Не важно']},
+ priority:{text:'И финальный штрих — что <b>важнее всего</b>?',opts:['Надёжность','Комфорт','Динамика','Экономичность','Не важно']}
+};
+const MENU=[{t:'Подобрать авто',p:1},{t:'Каталог'},{t:'Как ты работаешь'}];
+const FUEL_PRICE={petrol:60,diesel:64,hybrid:60,ev:6};
+const useLabel=c=>c.fuel==='ev'?c.use+' кВт·ч':c.use+' л';
+const cost100=c=>Math.round(c.use*FUEL_PRICE[c.fuel]);
+const gearType=c=>c.gb==='МКПП'?'manual':'auto';
+const carName=c=>c.brand+' '+c.model;
+const condLabel=c=>c.cond==='new'?'Новый':'С пробегом · '+c.year;
+
+/* ---------- состояние ---------- */
+const S={
+ answers:{},step:null,ranked:[],shown:0,mode:null,
+ favs:new Set(),cmp:[],
+ cat:{q:'',body:'all',cond:'all',fuel:'all',sort:'priceAsc',favOnly:false,maxPrice:Infinity,tag:null,preset:null},
+ demo:{on:false,t:0}
+};
+try{
+ const p=JSON.parse(localStorage.getItem('ck1')||'{}');
+ (p.favs||[]).forEach(id=>{if(CARS.some(c=>c.id===id))S.favs.add(id);});
+ S.cmp=(p.cmp||[]).filter(id=>CARS.some(c=>c.id===id)).slice(0,3);
+}catch(e){}
+function persist(){try{localStorage.setItem('ck1',JSON.stringify({favs:[...S.favs],cmp:S.cmp}));}catch(e){}}
+
+/* ---------- DOM ---------- */
+const msgs=$('msgs'),quick=$('quick'),input=$('input'),sendBtn=$('sendBtn'),composer=$('composer'),
+ ctxChips=$('ctxChips'),catalog=$('catalog'),carList=$('carList'),catCount=$('catCount'),
+ search=$('search'),bodyChips=$('bodyChips'),sortSel=$('sortSel'),condSel=$('condSel'),
+ favToggle=$('favToggle'),presetsEl=$('presets'),trayHost=$('trayHost'),
+ scrim=$('scrim'),drawer=$('drawer'),cmpWrap=$('cmpWrap'),cmpModal=$('cmpModal'),
+ toasts=$('toasts'),resetBtn=$('resetBtn'),catBtn=$('catBtn');
+let lastFocus=null;
+
+/* ================================================================
+   СТРОКА ВВОДА — три независимых пути отправки + защита от дублей.
+================================================================ */
+let lastSent={t:'',ts:0};
+function updateSendState(){sendBtn.classList.toggle('idle',!input.value.trim());}
+function submitMessage(){
+ const v=input.value.trim();
+ if(!v)return;
+ const ts=Date.now();
+ if(v===lastSent.t&&ts-lastSent.ts<400)return;
+ lastSent={t:v,ts:ts};
+ input.value='';updateSendState();
+ sendBtn.classList.remove('fire');void sendBtn.offsetWidth;sendBtn.classList.add('fire');
+ stopDemo();
+ enqueue(()=>doUser(v));
+ try{input.focus({preventScroll:true});}catch(e){input.focus();}
+}
+composer.addEventListener('submit',e=>{e.preventDefault();submitMessage();});
+sendBtn.addEventListener('click',e=>{e.preventDefault();submitMessage();});
+input.addEventListener('keydown',e=>{
+ if(e.key==='Enter'&&!e.isComposing&&!e.shiftKey){e.preventDefault();submitMessage();}
+});
+input.addEventListener('input',updateSendState);
+input.addEventListener('focus',()=>setTimeout(()=>scrollMsgs(true),120));
+
+/* ---------- высота под клавиатуру / ресайз ---------- */
+function syncViewport(){
+ const vv=window.visualViewport;
+ const h=Math.round(vv?vv.height:window.innerHeight);
+ document.documentElement.style.setProperty('--app-h',h+'px');
+ if(vv&&vv.offsetTop>0)window.scrollTo(0,0);
+ scrollMsgs(true);
+}
+window.addEventListener('resize',syncViewport);
+window.addEventListener('orientationchange',()=>setTimeout(syncViewport,220));
+if(window.visualViewport){
+ window.visualViewport.addEventListener('resize',syncViewport);
+ window.visualViewport.addEventListener('scroll',syncViewport);
+}
+
+/* ---------- очередь задач ---------- */
+const Q=[];let running=false;
+function enqueue(fn){Q.push(fn);if(!running)runQ();}
+async function runQ(){running=true;while(Q.length){const fn=Q.shift();try{await fn();}catch(e){console.error(e);}}running=false;}
+
+/* ---------- сообщения ---------- */
+function scrollMsgs(force){
+ const near=msgs.scrollHeight-msgs.scrollTop-msgs.clientHeight<190;
+ if(force||near){try{msgs.scrollTo({top:msgs.scrollHeight,behavior:'smooth'});}catch(e){msgs.scrollTop=msgs.scrollHeight;}}
+}
+function botMsg(html,wide){
+ const n=document.createElement('div');n.className='msg bot';
+ n.innerHTML='<div class="ava">'+ico('gauge',17)+'</div><div class="bubble'+(wide?' wide':'')+'">'+html+(wide?'':'<i class="time">'+nowTime()+'</i>')+'</div>';
+ return n;
+}
+function userMsg(text){
+ const n=document.createElement('div');n.className='msg user';
+ n.innerHTML='<div class="bubble">'+esc(text)+'<i class="time">'+nowTime()+'</i></div>';
+ return n;
+}
+function typingNode(){
+ const n=document.createElement('div');n.className='msg bot';
+ n.innerHTML='<div class="ava">'+ico('gauge',17)+'</div><div class="bubble"><span class="typing"><i></i><i></i><i></i></span></div>';
+ return n;
+}
+async function say(html){
+ const t=typingNode();msgs.append(t);scrollMsgs(true);
+ const len=strip(html).length;
+ await sleep(Math.min(1150,380+len*6.5)*(S.demo.on?.55:1));
+ t.remove();
+ const n=botMsg(html);msgs.append(n);scrollMsgs(true);
+ await sleep(130);return n;
+}
+async function raw(html,wide){
+ const n=botMsg(html,wide!==false);msgs.append(n);scrollMsgs(true);
+ await sleep(180);return n;
+}
+function setQuick(list){
+ quick.innerHTML='';
+ (list||[]).forEach((o,i)=>{
+  const t=typeof o==='string'?o:o.t,p=typeof o==='object'&&o.p;
+  const b=document.createElement('button');b.type='button';b.className='qbtn'+(p?' primary':'');
+  b.textContent=t;b.dataset.say=t;b.style.animationDelay=(i*45)+'ms';
+  quick.append(b);
+ });
+}
+quick.addEventListener('click',e=>{
+ const b=e.target.closest('[data-say]');if(!b)return;
+ stopDemo();enqueue(()=>doUser(b.dataset.say));
+});
+
+/* ---------- SVG авто ---------- */
+function carSVG(c){
+ const u=uid(),col=c.color;
+ const W={sedan:{r:15,y:86},hatch:{r:15,y:86},cross:{r:17,y:88},wagon:{r:15,y:86},offroad:{r:19,y:90}}[c.body];
+ const paths={
+ sedan:'M22 84 L26 70 Q30 63 46 61 L66 59 Q86 42 112 40 L146 40 Q168 42 184 56 L206 60 Q218 63 220 70 L222 80 Q222 86 214 86 L205 86 A19 19 0 0 0 167 86 L77 86 A19 19 0 0 0 39 86 L30 86 Q22 86 22 84 Z',
+ hatch:'M30 86 L30 58 Q31 47 48 44 L96 40 L138 40 Q160 42 178 56 L202 60 Q216 63 218 70 L220 80 Q220 86 212 86 L203 86 A19 19 0 0 0 165 86 L79 86 A19 19 0 0 0 41 86 L36 86 Q30 86 30 86 Z',
+ cross:'M24 88 L28 68 Q31 60 46 58 L62 56 Q80 36 108 34 L148 34 Q172 36 188 54 L208 58 Q220 61 222 70 L224 82 Q224 88 216 88 L207 88 A21 21 0 0 0 165 88 L79 88 A21 21 0 0 0 37 88 L32 88 Q24 88 24 88 Z',
+ wagon:'M24 86 L27 64 Q29 56 40 54 L48 44 Q50 40 58 40 L140 40 Q164 42 182 56 L204 60 Q218 63 220 70 L222 80 Q222 86 214 86 L205 86 A19 19 0 0 0 167 86 L77 86 A19 19 0 0 0 39 86 L30 86 Q24 86 24 86 Z',
+ offroad:'M26 90 L28 56 Q28 48 36 46 L52 44 L60 34 Q62 30 70 30 L150 30 Q158 30 162 34 L176 46 L206 50 Q218 52 220 60 L222 84 Q222 90 214 90 L208 90 A22 22 0 0 0 164 90 L82 90 A22 22 0 0 0 38 90 L32 90 Q26 90 26 90 Z'
+ };
+ const glass={
+ sedan:'M78 58 Q92 45 112 44 L144 44 Q160 45 172 55 L150 57 L96 58 Z',
+ hatch:'M46 48 L96 44 L136 44 Q152 45 164 54 L120 56 L52 58 Q46 56 46 48 Z',
+ cross:'M76 54 Q90 40 110 38 L146 38 Q164 40 178 52 L148 55 L92 56 Z',
+ wagon:'M56 44 L138 44 Q156 45 170 54 L120 56 L60 56 Q54 54 56 44 Z',
+ offroad:'M68 34 L148 34 L160 46 L120 48 L66 48 Q64 40 68 34 Z'
+ };
+ const pillars={sedan:[126,44,57],hatch:[118,44,56],cross:[126,38,55],wagon:[96,44,56,134,44,56],offroad:[116,34,48]};
+ const hlPts={sedan:'205,62 221,67 221,73 203,71',hatch:'203,62 219,67 219,73 201,71',cross:'207,60 223,65 223,72 205,69',wagon:'205,62 221,67 221,73 203,71',offroad:'207,54 221,58 221,66 205,63'}[c.body];
+ const hlC={sedan:[217,69],hatch:[215,69],cross:[219,67],wagon:[217,69],offroad:[217,61]}[c.body];
+ const tail={sedan:[24,64,5,7],hatch:[30,52,5,9],cross:[25,62,5,8],wagon:[25,58,5,8],offroad:[27,50,5,10]}[c.body];
+ const wheel=x=>'<circle cx="'+x+'" cy="'+W.y+'" r="'+W.r+'" fill="#1B1F26" stroke="#3A424E" stroke-width="2.5"/><circle cx="'+x+'" cy="'+W.y+'" r="'+(W.r*.52)+'" fill="url(#rim'+u+')"/><path d="M'+(x-W.r*.4)+' '+W.y+'h'+(W.r*.8)+'M'+x+' '+(W.y-W.r*.4)+'v'+(W.r*.8)+'" stroke="#4A5462" stroke-width="2"/><circle cx="'+x+'" cy="'+W.y+'" r="2.3" fill="#E2E7EE"/>';
+ const rearX=c.body==='offroad'?60:58,frontX=186;
+ let extra='';
+ if(c.body==='cross')extra='<rect x="86" y="29" width="76" height="3.5" rx="1.75" fill="'+shade(col,-45)+'"/><rect x="84" y="79" width="78" height="6" rx="3" fill="#1E222A" opacity=".35"/>';
+ if(c.body==='offroad')extra='<rect x="64" y="24" width="92" height="4" rx="2" fill="#2A3442"/><rect x="72" y="28" width="4" height="5" fill="#2A3442"/><rect x="144" y="28" width="4" height="5" fill="#2A3442"/><circle cx="31" cy="62" r="11" fill="#1B1F26" stroke="#3A424E" stroke-width="2"/><circle cx="31" cy="62" r="5" fill="url(#rim'+u+')"/>';
+ const pil=pillars[c.body];let pilSvg='';
+ for(let i=0;i<pil.length;i+=3)pilSvg+='<path d="M'+pil[i]+' '+pil[i+1]+'L'+pil[i]+' '+pil[i+2]+'" stroke="#0B0E13" stroke-width="3" opacity=".85"/>';
+ const doorX={sedan:128,hatch:120,cross:128,wagon:136,offroad:118}[c.body];
+ const doorY={sedan:60,hatch:58,cross:56,wagon:58,offroad:50}[c.body];
+ return '<svg class="car" viewBox="0 0 240 112" aria-hidden="true">'
+ +'<defs>'
+ +'<linearGradient id="b'+u+'" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="'+shade(col,30)+'"/><stop offset=".55" stop-color="'+col+'"/><stop offset="1" stop-color="'+shade(col,-34)+'"/></linearGradient>'
+ +'<linearGradient id="g'+u+'" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#33465C"/><stop offset="1" stop-color="#141E2A"/></linearGradient>'
+ +'<linearGradient id="rim'+u+'" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#EDF1F6"/><stop offset="1" stop-color="#78828F"/></linearGradient>'
+ +'<radialGradient id="hl'+u+'"><stop offset="0" stop-color="#FFC94D" stop-opacity=".95"/><stop offset="1" stop-color="#FFC94D" stop-opacity="0"/></radialGradient>'
+ +'</defs>'
+ +'<ellipse cx="120" cy="100" rx="96" ry="7" fill="#2A2418" opacity=".16"/>'
+ +(c.fuel==='ev'?'<ellipse cx="120" cy="97" rx="80" ry="7" fill="#0EA5B7" opacity=".2"/>':'')
+ +'<circle cx="'+rearX+'" cy="'+W.y+'" r="'+(W.r+4)+'" fill="#1E222A"/><circle cx="'+frontX+'" cy="'+W.y+'" r="'+(W.r+4)+'" fill="#1E222A"/>'
+ +'<path d="'+paths[c.body]+'" fill="url(#b'+u+')" stroke="'+shade(col,-55)+'" stroke-width="1.2"/>'
+ +extra
+ +'<path d="'+glass[c.body]+'" fill="url(#g'+u+')" stroke="#B7D3EE" stroke-opacity=".45" stroke-width="1"/>'
+ +pilSvg
+ +'<path d="M'+doorX+' '+doorY+'L'+(doorX+2)+' '+(W.y-6)+'" stroke="'+shade(col,-55)+'" stroke-width="1.5" opacity=".55"/>'
+ +'<rect x="'+(doorX+8)+'" y="'+(doorY+7)+'" width="9" height="2.5" rx="1.2" fill="'+shade(col,55)+'" opacity=".9"/>'
+ +'<rect x="'+tail[0]+'" y="'+tail[1]+'" width="'+tail[2]+'" height="'+tail[3]+'" rx="1.5" fill="#E11D48"/>'
+ +'<circle class="hl" cx="'+hlC[0]+'" cy="'+hlC[1]+'" r="13" fill="url(#hl'+u+')"/>'
+ +'<polygon points="'+hlPts+'" fill="#FFD36B"/>'
+ +wheel(rearX)+wheel(frontX)
+ +'</svg>';
+}
+function ringSVG(p){
+ const col=p>=85?'#16A34A':p>=70?'#D97706':'#E11D48';
+ const C=2*Math.PI*18;
+ return '<svg class="ring" viewBox="0 0 46 46"><circle cx="23" cy="23" r="18" stroke="#E7E2D6" stroke-width="4.5" fill="none"/>'
+ +'<circle class="ring-val" data-p="'+p+'" cx="23" cy="23" r="18" stroke="'+col+'" stroke-width="4.5" fill="none" stroke-linecap="round" transform="rotate(-90 23 23)" style="stroke-dasharray:'+C+';stroke-dashoffset:'+C+';filter:drop-shadow(0 0 3px '+col+'55)"/>'
+ +'<text x="23" y="27" text-anchor="middle" font-size="10.5" fill="#1B1F26">'+p+'%</text></svg>';
+}
+function animateRings(root){
+ qsa('.ring-val',root).forEach(el=>{
+  const p=+el.dataset.p,C=2*Math.PI*18;
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{el.style.strokeDashoffset=C*(1-p/100);}));
+ });
+}
+function fuelChip(c){
+ const cls=c.fuel==='ev'?'ev':c.fuel==='hybrid'?'hy':'';
+ return '<span class="'+cls+'">'+FUEL_RU[c.fuel]+' · '+useLabel(c)+'</span>';
+}
+function carCard(c,o){
+ o=o||{};
+ const fav=S.favs.has(c.id),cmp=S.cmp.includes(c.id);
+ return '<article class="car-card" style="--ccA:'+hexA(c.color,'2e')+';animation-delay:'+((o.i||0)*90)+'ms">'
+ +'<div class="cc-media">'+carSVG(c)+(o.rank?'<span class="cc-rank">#'+o.rank+'</span>':'')+'</div>'
+ +'<div class="cc-body"><div class="cc-top"><div><h4>'+esc(carName(c))+'</h4><div class="cc-price">'+fmtPrice(c.price)+'</div></div>'+(o.pct?ringSVG(o.pct):'')+'</div>'
+ +'<div class="cc-chips"><span>'+condLabel(c)+'</span><span>'+c.hp+' л.с.</span><span>'+c.gb+'</span>'+fuelChip(c)+'<span>'+DRIVE_RU[c.drive]+'</span></div>'
+ +(o.reasons?'<ul class="cc-why">'+o.reasons.map(r=>'<li class="'+(r.warn?'warn':'')+'">'+ico(r.warn?'alert':'check',13)+'<span>'+esc(r.t)+'</span></li>').join('')+'</ul>':'')
+ +'<div class="cc-actions">'
+ +'<button class="btn tiny ghost-a" type="button" data-act="details" data-id="'+c.id+'">Подробнее</button>'
+ +'<button class="ibtn'+(fav?' on':'')+'" type="button" data-act="fav" data-fav="'+c.id+'" data-id="'+c.id+'" title="В избранное" aria-pressed="'+fav+'">'+ico('heart',15)+'</button>'
+ +'<button class="ibtn'+(cmp?' on':'')+'" type="button" data-act="cmp" data-cmp="'+c.id+'" data-id="'+c.id+'" title="В сравнение" aria-pressed="'+cmp+'">'+ico('cmp',15)+'</button>'
+ +'</div></div></article>';
+}
+
+/* ---------- чипы параметров ---------- */
+function ansLabel(k){
+ const v=S.answers[k];
+ if(k==='budget')return fmtB(v);
+ if(k==='body')return BODY_RU[v];
+ if(k==='usage')return USAGE_RU[v];
+ if(k==='gearbox')return GEAR_RU[v];
+ if(k==='fuel')return FUEL_RU[v];
+ return PRI_RU[v];
+}
+function renderChips(){
+ ctxChips.innerHTML='';
+ const keys=ORDER.filter(k=>k in S.answers);
+ keys.forEach(k=>{
+  const b=document.createElement('button');b.type='button';b.className='ctx-chip';b.dataset.k=k;
+  b.title='Изменить: '+KEY_LABEL[k];
+  b.innerHTML=ico(CHIP_ICO[k],12)+esc(ansLabel(k));
+  ctxChips.append(b);
+ });
+ if(keys.length){
+  const r=document.createElement('button');r.type='button';r.className='ctx-reset';r.dataset.k='__reset';r.textContent='сбросить';
+  ctxChips.append(r);
+ }
+}
+ctxChips.addEventListener('click',e=>{
+ const b=e.target.closest('[data-k]');if(!b)return;
+ stopDemo();
+ if(b.dataset.k==='__reset'){enqueue(()=>doUser('заново'));return;}
+ const k=b.dataset.k;
+ enqueue(async()=>{
+  await say('Меняем <b>'+KEY_LABEL[k]+'</b>. Сейчас: '+esc(ansLabel(k))+'. Какое новое значение?');
+  S.step=k;setQuick(QUESTIONS[k].opts);
+ });
+});
+
+/* ---------- скоринг ---------- */
+function scoreCar(c,a,relaxBudget){
+ const R=[];let s=0,over=0;
+ const b=relaxBudget?Infinity:(a.budget===undefined?Infinity:a.budget);
+ if(b===Infinity){s+=24;}
+ else if(c.price<=b){
+  s+=30;const r=c.price/b;
+  s+=Math.max(0,6*(1-Math.abs(.85-r)/.85));
+  R.push({t:'Вписывается в бюджет — '+fmtPrice(c.price),w:5});
+ }else{
+  over=(c.price-b)/b;
+  if(!relaxBudget&&over>.15)return null;
+  s+=Math.max(0,14-over*70);
+  R.push({t:'Выше бюджета на '+Math.round(over*100)+'% — если есть люфт',w:4.9,warn:1});
+ }
+ if(a.body==='any')s+=10;
+ else if(a.body===c.body){
+  s+=18;
+  R.push({t:{sedan:'Классический седан — как хотели',cross:'Кроссовер: посадка выше, бордюры не страшны',hatch:'Хэтчбек — компактный и юркий',wagon:'Универсал — максимум объёма',offroad:'Настоящий внедорожник: проходимость прежде всего'}[c.body],w:3});
+ }
+ let us=0;
+ if(a.usage==='any')us=8;
+ else{
+  if(c.tags.indexOf(a.usage)>=0)us+=16;
+  if(a.usage==='city'){
+   if(c.use<=7.5||c.fuel==='ev'){us+=5;R.push({t:'Экономичен в городе: '+useLabel(c)+' на сотню',w:4.5});}
+   if(c.body==='hatch'||c.body==='sedan')us+=3;
+  }
+  if(a.usage==='family'){
+   if(c.trunk>=450){us+=6;R.push({t:'Багажник '+c.trunk+' л — коляска и чемоданы влезут',w:4.5});}
+   else if(c.trunk>=380)us+=3;
+   if(c.rel>=4.3){us+=4;R.push({t:'Надёжность '+c.rel.toFixed(1)+'/5 — важно, когда с детьми',w:4.4});}
+   if(c.clr>=180)us+=2;
+  }
+  if(a.usage==='travel'){
+   if(c.comf>=4.2){us+=6;R.push({t:'Комфорт на дальняк: '+c.comf.toFixed(1)+'/5',w:4.5});}
+   if(c.use<=7){us+=4;R.push({t:'Расход '+useLabel(c)+' — трасса без разорения',w:4.3});}
+   if(c.trunk>=480)us+=3;
+   if(c.fuel==='ev'&&c.range<350){s-=6;R.push({t:'Запас хода '+c.range+' км — для трассы впритык',w:4.9,warn:1});}
+  }
+  if(a.usage==='offroad'){
+   if(c.clr>=200){us+=6;R.push({t:'Клиренс '+c.clr+' мм — колея не страшна',w:4.5});}
+   else if(c.clr>=180)us+=3;
+   if(c.drive==='AWD'){us+=6;R.push({t:'Полный привод — уверенно вне асфальта',w:4.4});}
+  }
+  if(a.usage==='work'){
+   if(c.trunk>=480){us+=5;R.push({t:'Багажник '+c.trunk+' л — грузится всё',w:4.5});}
+   if(c.rel>=4.3){us+=5;R.push({t:'Ресурс и дешёвый сервис — для рабочих будней',w:4.4});}
+   if(c.use<=7)us+=3;
+  }
+ }
+ s+=Math.min(24,us);
+ const gt=gearType(c);
+ if(a.gearbox==='any')s+=6;
+ else if(a.gearbox===gt){s+=10;R.push({t:gt==='manual'?'Механика — как просили':c.gb+' — без педали сцепления',w:2.5});}
+ else s-=8;
+ if(a.fuel==='any')s+=6;
+ else if(a.fuel===c.fuel){s+=10;R.push({t:{petrol:'Бензин — привычно и просто',diesel:'Дизель — тяга и экономия',hybrid:'Гибрид — минимум заправок',ev:'Электро — тишина и дешёвый километр'}[c.fuel],w:2.5});}
+ else s-=6;
+ if(a.priority==='any')s+=(c.rel+c.comf+c.dyn+c.eco)/4*2;
+ else{
+  const v={reliability:c.rel,comfort:c.comf,dynamics:c.dyn,economy:c.eco}[a.priority];
+  s+=v*4;
+  if(v>=4.3)R.push({t:{reliability:'Надёжность '+v.toFixed(1)+'/5 — редко просит ремонта',comfort:'Комфорт '+v.toFixed(1)+'/5 — мягко и тихо',dynamics:'Разгон '+c.acc+' с — характер есть',economy:'Экономичность '+v.toFixed(1)+'/5 — '+useLabel(c)+' на сотню'}[a.priority],w:4});
+ }
+ s+=c.rel*.5;
+ const pct=clamp(Math.round(s/120*100),35,98);
+ return {car:c,s:s,pct:pct,over:over,reasons:R.sort((x,y)=>y.w-x.w).slice(0,3)};
+}
+function computeRanked(){
+ const a=S.answers;
+ let list=CARS.map(c=>scoreCar(c,a,false)).filter(Boolean).sort((x,y)=>y.s-x.s);
+ if(list.length){S.mode='ok';}
+ else{
+  S.mode='stretch';
+  list=CARS.map(c=>scoreCar(c,a,true)).filter(Boolean)
+   .map(e=>{e.over=(e.car.price-a.budget)/a.budget;return e;})
+   .sort((x,y)=>x.over-y.over||y.s-x.s);
+ }
+ S.ranked=list;S.shown=0;
+}
+
+/* ---------- скан ---------- */
+function scanNode(){
+ const n=document.createElement('div');n.className='msg bot';
+ n.innerHTML='<div class="ava">'+ico('gauge',17)+'</div><div class="bubble wide"><div class="scan">'
+ +'<svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="29" stroke="#0EA5B7" stroke-opacity=".3" fill="none"/><circle cx="32" cy="32" r="19" stroke="#0EA5B7" stroke-opacity=".3" fill="none"/><circle cx="32" cy="32" r="9" stroke="#0EA5B7" stroke-opacity=".35" fill="none"/><g class="sweep"><path d="M32 32L32 3" stroke="#0EA5B7" stroke-width="2" stroke-linecap="round"/><path d="M32 32L46 7" stroke="#0EA5B7" stroke-opacity=".28" stroke-width="6" stroke-linecap="round"/></g><circle cx="32" cy="32" r="3" fill="#F59E0B"/><circle cx="45" cy="20" r="2" fill="#16A34A"/><circle cx="20" cy="42" r="2" fill="#2563EB"/></svg>'
+ +'<div class="scan-info"><b>ПОДБИРАЮ ВАРИАНТЫ</b><div class="scan-step">Инициализация…</div><div class="scan-track"><i></i></div></div>'
+ +'<div class="scan-count"><span>'+CARS.length+'</span><small>авто</small></div></div></div>';
+ const step=n.querySelector('.scan-step'),bar=n.querySelector('.scan-track i'),cnt=n.querySelector('.scan-count span');
+ return {n:n,set(t,p,c){step.textContent=t;bar.style.width=p+'%';cnt.textContent=c;}};
+}
+async function runScan(){
+ S.step=null;setQuick([]);
+ computeRanked();
+ const a=S.answers,f=S.demo.on?.55:1;
+ const c1=a.budget===Infinity?CARS.length:CARS.filter(c=>c.price<=a.budget).length;
+ const c2=CARS.filter(c=>c.price<=(a.budget===Infinity?Infinity:a.budget*1.15)
+   &&(a.body==='any'||c.body===a.body)&&(a.fuel==='any'||c.fuel===a.fuel)).length;
+ const sc=scanNode();msgs.append(sc.n);scrollMsgs(true);
+ await sleep(360*f);sc.set('Проверяю бюджет…',30,c1);
+ await sleep(430*f);sc.set('Фильтрую кузов и технику…',62,c2);
+ await sleep(440*f);sc.set('Считаю скоринг и рейтинги…',88,Math.min(c2,9));
+ await sleep(390*f);sc.set('Готово',100,S.ranked.length);
+ await sleep(260*f);sc.n.remove();
+ await showResults();
+}
+function resultQuick(){
+ const q=[];
+ if(S.shown<S.ranked.length)q.push('Ещё варианты');
+ q.push('Изменить бюджет','Скачать отчёт','Новый подбор');
+ return q;
+}
+async function showResults(){
+ const slice=S.ranked.slice(0,3);S.shown=slice.length;
+ if(!slice.length){await say('База пуста? Такого быть не должно — начнём заново.');setQuick(MENU);return;}
+ if(S.mode==='stretch'){
+  const suggest=Math.ceil(S.ranked[0].car.price*1.06/100000)*100000;
+  await say('Честно: в бюджет <b>'+fmtB(S.answers.budget)+'</b> с такими условиями ничего не влезает 🤔 Вот ближайшее сверху — либо поднимем планку, либо смягчим требования.');
+  const n=await raw('<div class="cards">'+slice.map((e,i)=>carCard(e.car,{rank:i+1,pct:e.pct,reasons:e.reasons,i:i})).join('')+'</div>');
+  animateRings(n);
+  setQuick(['Поднять бюджет до '+fmtShort(suggest),'Смягчить условия','Заново']);
+ }else{
+  await say('<div class="res-head">'+ico('flag',18)+'<b>ШОРТ-ЛИСТ ГОТОВ</b><span>'+S.ranked.length+' совпадений</span></div>Из '+CARS.length+' авто под ваш запрос лучше всего подходят эти три:');
+  const n=await raw('<div class="cards">'+slice.map((e,i)=>carCard(e.car,{rank:i+1,pct:e.pct,reasons:e.reasons,i:i})).join('')+'</div>');
+  animateRings(n);
+  setQuick(resultQuick());
+ }
+ scrollMsgs(true);
+}
+async function showMore(){
+ if(!S.ranked.length){await say('Сначала сделаем подбор — это шесть коротких вопросов 😉');setQuick(MENU);return;}
+ const start=S.shown,slice=S.ranked.slice(start,start+3);
+ if(!slice.length){await say('Это весь шорт-лист 🏁 Можно смягчить условия или начать заново.');setQuick(['Смягчить условия','Изменить бюджет','Новый подбор']);return;}
+ S.shown+=slice.length;
+ await say('Продолжаю шорт-лист:');
+ const n=await raw('<div class="cards">'+slice.map((e,i)=>carCard(e.car,{rank:start+i+1,pct:e.pct,reasons:e.reasons,i:i})).join('')+'</div>');
+ animateRings(n);
+ setQuick(resultQuick());
+}
+
+/* ---------- парсеры ---------- */
+const ANY_RE=/не ?важно|неважн|любой|любая|все равно|всё равно|пропуст|скип|без разниц/;
+function parseBudget(t){
+ if(/без огранич|без лимита/.test(t)||ANY_RE.test(t))return Infinity;
+ const m=t.match(/(\d+(?:[.,]\d+)?)\s*(млн|миллион\w*|м(?![а-яa-z])|к(?![а-яa-z])|тыс\w*|т(?![а-яa-z]))/);
+ if(m){const n=parseFloat(m[1].replace(',','.'));return Math.round(n*(m[2][0]==='м'?1e6:1e3));}
+ const p=t.match(/\d+(?:[.,]\d+)?(?:[\s\u00A0]\d{3})*/g);
+ if(p){
+  let best=0;
+  p.forEach(x=>{const n=parseFloat(x.replace(/[\s\u00A0]/g,'').replace(',','.'));if(n>best)best=n;});
+  if(best>0){
+   if(best<100)return Math.round(best*1e6);
+   if(best<10000)return Math.round(best*1e3);
+   return Math.round(best);
+  }
+ }
+ return null;
+}
+function parseStep(k,t){
+ if(k==='budget')return parseBudget(t);
+ if(ANY_RE.test(t))return 'any';
+ if(k==='body'){
+  if(/внедор|джип|проходим|оффроуд/.test(t))return 'offroad';
+  if(/кросс|паркет|suv/.test(t))return 'cross';
+  if(/хэтч|хетч|hatch/.test(t))return 'hatch';
+  if(/универсал|вагон|wagon|комби/.test(t))return 'wagon';
+  if(/седан|sedan/.test(t))return 'sedan';
+  return null;
+ }
+ if(k==='usage'){
+  if(/семь|дет|family/.test(t))return 'family';
+  if(/трасс|путешеств|дальн|travel/.test(t))return 'travel';
+  if(/дач|бездор|рыбал|охот|гряз|offroad/.test(t))return 'offroad';
+  if(/работ|груз|перевоз|такси|курьер|work/.test(t))return 'work';
+  if(/город|city|пробк/.test(t))return 'city';
+  return null;
+ }
+ if(k==='gearbox'){
+  if(/механ|мкпп|ручн|manual/.test(t))return 'manual';
+  if(/автомат|акпп|робот|вариатор/.test(t))return 'auto';
+  return null;
+ }
+ if(k==='fuel'){
+  if(/электр|заряж|\bev\b/.test(t))return 'ev';
+  if(/гибрид/.test(t))return 'hybrid';
+  if(/дизел/.test(t))return 'diesel';
+  if(/бензин|аи-?9|\b95\b|\b92\b/.test(t))return 'petrol';
+  return null;
+ }
+ if(k==='priority'){
+  if(/надеж|без поломок/.test(t))return 'reliability';
+  if(/комфорт|удоб|мягк|тих/.test(t))return 'comfort';
+  if(/динам|разгон|мощн|быстр|спорт|драйв/.test(t))return 'dynamics';
+  if(/эконом|расход|дешев(?!ле)/.test(t))return 'economy';
+  return null;
+ }
+ return null;
+}
+function parseAll(t){
+ const out={};
+ ORDER.forEach(k=>{const v=parseStep(k,t);if(v!==null)out[k]=v;});
+ return out;
+}
+function findCarByAlias(t){
+ return CARS.find(c=>{
+  const names=[c.brand.toLowerCase(),c.model.toLowerCase(),(c.brand+' '+c.model).toLowerCase()].concat((c.alias||'').split('|').filter(Boolean));
+  return names.some(n=>n.length>1&&t.indexOf(n)>=0);
+ });
+}
+
+/* ---------- визард ---------- */
+async function askStep(k){
+ S.step=k;
+ const cur=(k in S.answers)?' <span class="hint">(сейчас: '+esc(ansLabel(k))+')</span>':'';
+ await say(QUESTIONS[k].text+cur);
+ setQuick(QUESTIONS[k].opts);
+}
+async function advance(){
+ const missing=ORDER.find(k=>!(k in S.answers));
+ if(missing)await askStep(missing);
+ else await runScan();
+}
+
+/* ---------- мнение о машине ---------- */
+function opinionText(c){
+ const strongest=[['надёжность',c.rel],['комфорт',c.comf],['динамику',c.dyn],['экономичность',c.eco]].sort((a,b)=>b[1]-a[1])[0];
+ let fit='';
+ if('budget' in S.answers&&S.answers.budget!==Infinity){
+  fit=c.price<=S.answers.budget
+   ?' В ваш бюджет '+fmtB(S.answers.budget)+' влезает, остаётся ещё '+fmtShort(S.answers.budget-c.price)+' ₽ на страховку и резину.'
+   :' Но это выше вашего бюджета на '+Math.round((c.price-S.answers.budget)/S.answers.budget*100)+'%.';
+ }
+ const verdict=c.rel>=4.7?'Один из самых беспроблемных вариантов в базе.':c.dyn>=4.6?'Для тех, кто любит уверенные обгоны и светофорные старты.':c.eco>=4.6?'Кошелёк на заправке скажет спасибо.':'Крепкий вариант со своим характером.';
+ return '<b>'+esc(carName(c))+'</b> — '+esc(c.blurb)+' Сильная сторона — '+strongest[0]+' ('+strongest[1].toFixed(1)+'/5).'+fit
+  +'<br><br>Из плюсов: '+esc(c.plus[0].toLowerCase())+', '+esc(c.plus[1].toLowerCase())+'. Но учтите: '+esc(c.minus[0].toLowerCase())+'. '+verdict;
+}
+function askBotAbout(id){
+ const c=CARS.find(x=>x.id===id);if(!c)return;
+ closeDrawer();
+ if(isMobile())closeCatalog();
+ enqueue(async()=>{
+  await say(opinionText(c));
+  const e=S.ranked.find(x=>x.car.id===id);
+  const n=await raw('<div class="cards">'+carCard(c,{pct:e?e.pct:null,reasons:e?e.reasons:null})+'</div>');
+  if(e)animateRings(n);
+  setQuick(S.ranked.length?resultQuick():MENU);
+ });
+}
+
+/* ---------- отчёт ---------- */
+function exportReport(){
+ if(!S.ranked.length){toast('Сначала завершите подбор — потом скачаем отчёт','err');return;}
+ const lines=['CarКарыч — отчёт подбора автомобиля','Дата: '+new Date().toLocaleString('ru-RU'),'','ПАРАМЕТРЫ ЗАПРОСА:'];
+ ORDER.forEach(k=>{if(k in S.answers)lines.push('  · '+KEY_LABEL[k]+': '+ansLabel(k));});
+ lines.push('','ТОП ВАРИАНТОВ:','');
+ S.ranked.slice(0,Math.max(3,Math.min(6,S.shown))).forEach((e,i)=>{
+  const c=e.car;
+  lines.push((i+1)+'. '+carName(c)+' ('+c.year+') — совпадение '+e.pct+'%');
+  lines.push('   Цена: '+fmtPrice(c.price)+' · '+condLabel(c));
+  lines.push('   '+c.hp+' л.с. · '+c.gb+' · '+DRIVE_RU[c.drive]+' · '+FUEL_RU[c.fuel]+' '+useLabel(c)+' · клиренс '+c.clr+' мм · багажник '+c.trunk+' л'+(c.range?' · запас хода '+c.range+' км':''));
+  lines.push('   ≈ '+cost100(c)+' ₽ / 100 км');
+  e.reasons.forEach(r=>lines.push('   '+(r.warn?'! ':'+ ')+r.t));
+  lines.push('   Плюсы: '+c.plus.join('; '));
+  lines.push('   Минусы: '+c.minus.join('; '));
+  lines.push('');
+ });
+ lines.push('Сгенерировано офлайн-помощником CarКарыч · один HTML-файл, без API.');
+ try{
+  const blob=new Blob(['\uFEFF'+lines.join('\n')],{type:'text/plain;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;a.download='carkarych-podbor.txt';document.body.append(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),4000);
+  toast('Отчёт сохранён: carkarych-podbor.txt','ok');
+ }catch(e){toast('Браузер заблокировал скачивание файла','err');}
+}
+
+/* ---------- тосты ---------- */
+function toast(text,type,undoFn){
+ while(toasts.children.length>=3)toasts.firstChild.remove();
+ const n=document.createElement('div');n.className='toast'+(type?' '+type:'');
+ n.innerHTML=ico(type==='err'?'alert':type==='ok'?'check':'info',15)+'<span>'+esc(text)+'</span>';
+ const kill=()=>{if(!n.parentNode)return;n.classList.add('out');setTimeout(()=>n.remove(),300);};
+ if(undoFn){const b=document.createElement('button');b.type='button';b.textContent='Вернуть';b.onclick=()=>{undoFn();kill();};n.append(b);}
+ toasts.append(n);
+ setTimeout(kill,undoFn?5200:3800);
+}
+
+/* ---------- избранное / сравнение ---------- */
+function syncFavBtns(id){qsa('[data-fav="'+id+'"]').forEach(b=>{const on=S.favs.has(id);b.classList.toggle('on',on);b.setAttribute('aria-pressed',on);});}
+function syncCmpBtns(id){qsa('[data-cmp="'+id+'"]').forEach(b=>{const on=S.cmp.includes(id);b.classList.toggle('on',on);b.setAttribute('aria-pressed',on);});}
+function toggleFav(id){
+ const c=CARS.find(x=>x.id===id);if(!c)return;
+ if(S.favs.has(id)){
+  S.favs.delete(id);persist();syncFavBtns(id);renderList();renderFavToggle();
+  toast(carName(c)+' — убрано из избранного',null,()=>{S.favs.add(id);persist();syncFavBtns(id);renderList();renderFavToggle();toast('Возвращено в избранное','ok');});
+ }else{
+  S.favs.add(id);persist();syncFavBtns(id);renderList();renderFavToggle();
+  toast(carName(c)+' — в избранном ♥','ok');
+ }
+}
+function toggleCompare(id){
+ const i=S.cmp.indexOf(id);
+ if(i>=0)S.cmp.splice(i,1);
+ else{
+  if(S.cmp.length>=3){toast('В сравнении максимум 3 авто — уберите одно','err');return;}
+  S.cmp.push(id);
+ }
+ persist();syncCmpBtns(id);renderTray();
+ if(cmpWrap.classList.contains('open')){
+  if(S.cmp.length<2){closeCompare();toast('Для сравнения нужно минимум 2 авто');}
+  else renderCompare();
+ }
+}
+
+/* ---------- каталог ---------- */
+const PRESETS=[
+ {id:'p1',t:'До 1,5 млн',f:{maxPrice:1500000,sort:'priceAsc'}},
+ {id:'p2',t:'Электро ⚡',f:{fuel:'ev'}},
+ {id:'p3',t:'Семейные',f:{tag:'family'}},
+ {id:'p4',t:'Для города',f:{tag:'city'}}
+];
+function catDefault(){return {q:'',body:'all',cond:'all',fuel:'all',sort:'priceAsc',favOnly:false,maxPrice:Infinity,tag:null,preset:null};}
+function filteredCars(){
+ const f=S.cat;let list=CARS.slice();
+ if(f.favOnly)list=list.filter(c=>S.favs.has(c.id));
+ if(f.q){const q=norm(f.q);list=list.filter(c=>norm(carName(c)+' '+(c.alias||'')).indexOf(q)>=0);}
+ if(f.body!=='all')list=list.filter(c=>c.body===f.body);
+ if(f.cond!=='all')list=list.filter(c=>c.cond===f.cond);
+ if(f.fuel!=='all')list=list.filter(c=>c.fuel===f.fuel);
+ if(f.maxPrice!==Infinity)list=list.filter(c=>c.price<=f.maxPrice);
+ if(f.tag)list=list.filter(c=>c.tags.indexOf(f.tag)>=0);
+ const sorts={priceAsc:(a,b)=>a.price-b.price,priceDesc:(a,b)=>b.price-a.price,power:(a,b)=>b.hp-a.hp,year:(a,b)=>b.year-a.year||a.price-b.price,rel:(a,b)=>b.rel-a.rel};
+ return list.sort(sorts[f.sort]||sorts.priceAsc);
+}
+function renderBodyChips(){
+ const bodies=['all','sedan','cross','hatch','wagon','offroad'];
+ bodyChips.innerHTML=bodies.map(b=>'<button type="button" class="fchip'+(S.cat.body===b?' on':'')+'" data-body="'+b+'">'+(b==='all'?'Все кузова':BODY_RU[b])+'</button>').join('');
+}
+function renderPresets(){
+ const dirty=JSON.stringify(Object.assign({},S.cat,{q:''}))!==JSON.stringify(Object.assign({},catDefault(),{q:''}));
+ presetsEl.innerHTML=PRESETS.map(p=>'<button type="button" class="pchip'+(S.cat.preset===p.id?' on':'')+'" data-preset="'+p.id+'">'+p.t+'</button>').join('')
+  +(dirty?'<button type="button" class="pchip reset" data-preset="__reset">✕ Сбросить</button>':'');
+}
+function renderFavToggle(){
+ favToggle.className='fchip'+(S.cat.favOnly?' on rd':'');
+ favToggle.textContent='♥ '+S.favs.size;
+}
+function renderList(){
+ const list=filteredCars();
+ catCount.textContent=list.length+' / '+CARS.length;
+ if(!list.length){
+  carList.innerHTML='<div class="empty">'+ico('soff',38)+'<p>'+(S.cat.favOnly&&!S.favs.size?'В избранном пусто. Жмите ♥ на карточках — соберём ваш личный шорт-лист.':'Ничего не нашлось. Попробуйте сбросить фильтры или изменить запрос.')+'</p><button type="button" class="btn tiny ghost-a" data-act="reset-filters">Сбросить фильтры</button></div>';
+  return;
+ }
+ carList.innerHTML=list.map(c=>{
+  const fav=S.favs.has(c.id),cmp=S.cmp.includes(c.id);
+  return '<div class="row" data-id="'+c.id+'" tabindex="0" role="button" aria-label="'+esc(carName(c))+'">'
+   +'<div class="row-media">'+carSVG(c)+'</div>'
+   +'<div class="row-info"><b>'+esc(carName(c))+'</b><span>'+c.year+' · '+c.hp+' л.с. · '+c.gb+' · '+useLabel(c)+'</span><em>'+fmtPrice(c.price)+'</em></div>'
+   +'<div class="row-actions">'
+   +'<button class="ibtn'+(fav?' on':'')+'" type="button" data-act="fav" data-fav="'+c.id+'" data-id="'+c.id+'" title="В избранное" aria-pressed="'+fav+'">'+ico('heart',13)+'</button>'
+   +'<button class="ibtn'+(cmp?' on':'')+'" type="button" data-act="cmp" data-cmp="'+c.id+'" data-id="'+c.id+'" title="В сравнение" aria-pressed="'+cmp+'">'+ico('cmp',13)+'</button>'
+   +'</div></div>';
+ }).join('');
+}
+function renderCatalogAll(){renderBodyChips();renderPresets();renderFavToggle();renderList();sortSel.value=S.cat.sort;condSel.value=S.cat.cond;}
+function renderTray(){
+ if(!S.cmp.length){trayHost.innerHTML='';return;}
+ const cars=S.cmp.map(id=>CARS.find(c=>c.id===id));
+ trayHost.innerHTML='<div class="tray"><div class="tray-thumbs">'
+  +cars.map(c=>'<div class="tthumb" title="'+esc(carName(c))+'">'+carSVG(c)+'<button type="button" data-act="uncmp" data-id="'+c.id+'" title="Убрать">✕</button></div>').join('')
+  +'</div>'+(S.cmp.length<2?'<span class="tray-hint">ещё ≥1</span>':'')
+  +'<button class="btn tiny primary" type="button" data-act="open-cmp"'+(S.cmp.length<2?' disabled':'')+'>Сравнить ('+S.cmp.length+')</button>'
+  +'<button class="ibtn" type="button" data-act="clear-cmp" title="Очистить">'+ico('x',14)+'</button></div>';
+}
+search.addEventListener('input',()=>{S.cat.q=search.value;S.cat.preset=null;renderPresets();renderList();});
+bodyChips.addEventListener('click',e=>{const b=e.target.closest('[data-body]');if(!b)return;S.cat.body=b.dataset.body;S.cat.preset=null;renderCatalogAll();});
+sortSel.addEventListener('change',()=>{S.cat.sort=sortSel.value;renderList();});
+condSel.addEventListener('change',()=>{S.cat.cond=condSel.value;S.cat.preset=null;renderPresets();renderList();});
+favToggle.addEventListener('click',()=>{S.cat.favOnly=!S.cat.favOnly;renderFavToggle();renderList();});
+presetsEl.addEventListener('click',e=>{
+ const b=e.target.closest('[data-preset]');if(!b)return;
+ const id=b.dataset.preset,q=S.cat.q;
+ if(id==='__reset'||S.cat.preset===id)S.cat=Object.assign(catDefault(),{q:q});
+ else{const p=PRESETS.find(x=>x.id===id);S.cat=Object.assign(catDefault(),{q:q,preset:id},p.f);}
+ renderCatalogAll();
+});
+carList.addEventListener('click',e=>{
+ const act=e.target.closest('[data-act]');
+ if(act){e.stopPropagation();handleAct(act);return;}
+ const row=e.target.closest('.row');if(row)openDrawer(+row.dataset.id);
+});
+carList.addEventListener('keydown',e=>{
+ if(e.key!=='Enter'&&e.key!==' ')return;
+ const row=e.target.closest('.row');
+ if(row&&!e.target.closest('[data-act]')){e.preventDefault();openDrawer(+row.dataset.id);}
+});
+trayHost.addEventListener('click',e=>{const a=e.target.closest('[data-act]');if(a)handleAct(a);});
+
+/* ---------- досье ---------- */
+function drawerHTML(c){
+ const fav=S.favs.has(c.id),cmp=S.cmp.includes(c.id);
+ const spec=(l,v)=>'<div class="spec"><i>'+l+'</i><b>'+v+'</b></div>';
+ const bar=(l,v)=>'<div class="bar-row"><span>'+l+'</span><div class="bar"><i data-w="'+(v/5*100)+'"></i></div><em>'+v.toFixed(1)+'</em></div>';
+ const costNote=c.fuel==='ev'?'≈ '+cost100(c)+' ₽ на 100 км · домашняя зарядка ~6 ₽/кВт·ч':'≈ '+cost100(c)+' ₽ на 100 км · '+(c.fuel==='diesel'?'ДТ':'АИ-95')+' ~'+FUEL_PRICE[c.fuel]+' ₽/л';
+ return '<div class="dr-scroll"><div class="dr-hero" style="--ccA:'+hexA(c.color,'33')+'">'
+ +'<button class="ibtn dr-close" type="button" data-act="close-drawer" title="Закрыть">'+ico('x',15)+'</button>'
+ +'<div class="dr-badges"><span class="badge '+c.cond+'">'+(c.cond==='new'?'Новый':'С пробегом')+'</span>'
+ +(c.fuel==='ev'?'<span class="badge ev">Электро</span>':c.fuel==='hybrid'?'<span class="badge hy">Гибрид</span>':'')
+ +'<span class="badge" style="background:var(--bg3);color:var(--mut);border:1px solid var(--line2)">'+BODY_RU[c.body]+'</span></div>'
+ +carSVG(c)+'</div><div class="dr-body">'
+ +'<h2>'+esc(carName(c))+'</h2><div class="dr-price">'+fmtPrice(c.price)+'</div><p class="dr-blurb">'+esc(c.blurb)+'</p>'
+ +'<div class="dr-sec">Характеристики</div><div class="spec-grid">'
+ +spec('Год',c.year)+spec('Мощность',c.hp+' л.с.')+spec('Коробка',c.gb)+spec('Привод',DRIVE_RU[c.drive])
+ +spec('Расход',useLabel(c))+spec('Разгон 0–100',c.acc+' с')+spec('Клиренс',c.clr+' мм')+spec('Багажник',c.trunk+' л')
+ +(c.range?spec('Запас хода',c.range+' км'):spec('Топливо',FUEL_RU[c.fuel]))+spec('Состояние',condLabel(c))
+ +'</div><div class="dr-sec">Оценки Карыча</div><div class="bars">'
+ +bar('Надёжность',c.rel)+bar('Комфорт',c.comf)+bar('Динамика',c.dyn)+bar('Экономичность',c.eco)+'</div>'
+ +'<div class="dr-sec">Плюсы</div><ul class="pm plus">'+c.plus.map(p=>'<li>'+ico('check',14)+'<span>'+esc(p)+'</span></li>').join('')+'</ul>'
+ +'<div class="dr-sec">Минусы</div><ul class="pm minus">'+c.minus.map(p=>'<li>'+ico('minus',14)+'<span>'+esc(p)+'</span></li>').join('')+'</ul>'
+ +'<div class="cost">'+ico('fuel',17)+'<span>'+costNote+'</span></div></div></div>'
+ +'<div class="dr-actions">'
+ +'<button class="ibtn'+(fav?' on':'')+'" type="button" data-act="fav" data-fav="'+c.id+'" data-id="'+c.id+'" title="В избранное" aria-pressed="'+fav+'">'+ico('heart',18)+'</button>'
+ +'<button class="ibtn'+(cmp?' on':'')+'" type="button" data-act="cmp" data-cmp="'+c.id+'" data-id="'+c.id+'" title="В сравнение" aria-pressed="'+cmp+'">'+ico('cmp',18)+'</button>'
+ +'<button class="btn primary" type="button" data-act="ask" data-id="'+c.id+'">'+ico('spark',16)+'Спросить Карыча</button></div>';
+}
+function openDrawer(id){
+ const c=CARS.find(x=>x.id===id);if(!c)return;
+ if(isMobile())closeCatalog();
+ lastFocus=document.activeElement;
+ drawer.innerHTML=drawerHTML(c);
+ drawer.classList.add('open');syncScrim();
+ requestAnimationFrame(()=>requestAnimationFrame(()=>{qsa('.bar i',drawer).forEach(b=>{b.style.width=b.dataset.w+'%';});}));
+ const cl=drawer.querySelector('.dr-close');if(cl)cl.focus();
+}
+function closeDrawer(){if(!drawer.classList.contains('open'))return;drawer.classList.remove('open');syncScrim();if(lastFocus&&lastFocus.focus)try{lastFocus.focus({preventScroll:true});}catch(e){}}
+drawer.addEventListener('click',e=>{const a=e.target.closest('[data-act]');if(a)handleAct(a);});
+
+/* ---------- сравнение ---------- */
+function renderCompare(){
+ const cars=S.cmp.map(id=>CARS.find(c=>c.id===id));
+ const rows=[
+  {l:'Цена',v:c=>c.price,g:c=>fmtPrice(c.price),best:'low'},
+  {l:'Год',v:c=>c.year,g:c=>c.year,best:'high'},
+  {l:'Состояние',g:c=>condLabel(c)},
+  {l:'Мощность',v:c=>c.hp,g:c=>c.hp+' л.с.',best:'high'},
+  {l:'Коробка',g:c=>c.gb},
+  {l:'Привод',g:c=>DRIVE_RU[c.drive]},
+  {l:'Расход',g:c=>useLabel(c)},
+  {l:'₽ / 100 км',v:c=>cost100(c),g:c=>'≈ '+cost100(c)+' ₽',best:'low'},
+  {l:'Разгон 0–100',v:c=>c.acc,g:c=>c.acc+' с',best:'low'},
+  {l:'Клиренс',v:c=>c.clr,g:c=>c.clr+' мм',best:'high'},
+  {l:'Багажник',v:c=>c.trunk,g:c=>c.trunk+' л',best:'high'},
+  {l:'Запас хода',v:c=>c.range||0,g:c=>c.range?c.range+' км':'—',best:'high',skipIfAllZero:true},
+  {l:'Надёжность',v:c=>c.rel,g:c=>c.rel.toFixed(1)+' / 5',best:'high'},
+  {l:'Комфорт',v:c=>c.comf,g:c=>c.comf.toFixed(1)+' / 5',best:'high'}
+ ];
+ let html='<div class="modal-head">'+ico('cmp',18)+'<h3>СРАВНЕНИЕ</h3><span>'+cars.length+' авто · лучшие значения подсвечены</span><button class="ibtn" type="button" data-act="close-cmp" title="Закрыть">'+ico('x',15)+'</button></div><div class="modal-body"><table class="cmp-table"><thead><tr><th></th>';
+ cars.forEach(c=>{html+='<th class="cmp-th"><button class="rm" type="button" data-act="uncmp" data-id="'+c.id+'" title="Убрать из сравнения">'+ico('x',11)+'</button>'+carSVG(c)+'<b>'+esc(carName(c))+'</b><em>'+fmtPrice(c.price)+'</em></th>';});
+ html+='</tr></thead><tbody>';
+ rows.forEach(r=>{
+  if(r.skipIfAllZero&&cars.every(c=>!r.v(c)))return;
+  let bestVal=null,uniq=1;
+  if(r.best&&cars.length>1){const vals=cars.map(r.v);uniq=new Set(vals).size;bestVal=r.best==='low'?Math.min.apply(null,vals):Math.max.apply(null,vals);}
+  html+='<tr><td>'+r.l+'</td>';
+  cars.forEach(c=>{
+   const isBest=r.best&&bestVal!==null&&uniq>1&&r.v(c)===bestVal;
+   html+='<td class="'+(isBest?'best':'')+'">'+r.g(c)+'</td>';
+  });
+  html+='</tr>';
+ });
+ html+='</tbody><tfoot><tr><td></td>';
+ cars.forEach(c=>{html+='<td><button class="btn tiny ghost-a cmp-foot-btn" type="button" data-act="details" data-id="'+c.id+'">Досье</button></td>';});
+ html+='</tr></tfoot></table><div class="cmp-note">▲ — лучшее значение в строке. Расход электромобилей пересчитан в рубли по домашнему тарифу.</div></div>';
+ cmpModal.innerHTML=html;
+}
+function openCompare(){
+ if(S.cmp.length<2){toast('Добавьте в сравнение минимум 2 авто (кнопка ⇄ на карточках)','err');return;}
+ renderCompare();cmpWrap.classList.add('open');
+}
+function closeCompare(){cmpWrap.classList.remove('open');}
+cmpWrap.addEventListener('click',e=>{
+ if(e.target===cmpWrap){closeCompare();return;}
+ const a=e.target.closest('[data-act]');if(a)handleAct(a);
+});
+
+/* ---------- общие действия ---------- */
+function handleAct(el){
+ const act=el.dataset.act,id=+el.dataset.id;
+ if(act==='details'){closeCompare();openDrawer(id);}
+ else if(act==='fav')toggleFav(id);
+ else if(act==='cmp')toggleCompare(id);
+ else if(act==='uncmp'){if(S.cmp.indexOf(id)>=0)toggleCompare(id);}
+ else if(act==='ask')askBotAbout(id);
+ else if(act==='close-drawer')closeDrawer();
+ else if(act==='close-cmp')closeCompare();
+ else if(act==='open-cmp')openCompare();
+ else if(act==='clear-cmp')S.cmp.slice().forEach(x=>toggleCompare(x));
+ else if(act==='reset-filters'){S.cat=catDefault();search.value='';renderCatalogAll();}
+}
+msgs.addEventListener('click',e=>{const a=e.target.closest('[data-act]');if(a)handleAct(a);});
+
+/* ---------- слои ---------- */
+function syncScrim(){scrim.classList.toggle('show',drawer.classList.contains('open')||(isMobile()&&catalog.classList.contains('open')));}
+function openCatalog(){
+ if(isMobile()){catalog.classList.add('open');syncScrim();}
+ else{catalog.classList.remove('flash');void catalog.offsetWidth;catalog.classList.add('flash');}
+}
+function closeCatalog(){catalog.classList.remove('open');syncScrim();}
+scrim.addEventListener('click',()=>{if(drawer.classList.contains('open'))closeDrawer();else closeCatalog();});
+document.addEventListener('keydown',e=>{
+ if(e.key!=='Escape')return;
+ if(cmpWrap.classList.contains('open'))closeCompare();
+ else if(drawer.classList.contains('open'))closeDrawer();
+ else if(isMobile()&&catalog.classList.contains('open'))closeCatalog();
+});
+window.addEventListener('resize',()=>{if(!isMobile())closeCatalog();syncScrim();});
+
+/* ---------- роутер ---------- */
+async function doUser(text,opt){
+ opt=opt||{};
+ text=String(text).trim();if(!text)return;
+ if(!opt.demo)stopDemo();
+ msgs.append(userMsg(text));scrollMsgs(true);setQuick([]);
+ await sleep(160);
+ try{await route(norm(text));}
+ catch(err){console.error(err);await say('Что-то пошло не так на моей стороне 🙂 Напишите «заново» — и продолжим.');setQuick(MENU);}
+}
+async function route(t){
+ if(/заново|сначала|новый подбор|сброс|reset/.test(t)){await resetChat(true);toast('Диалог сброшен');return;}
+ if(/помощь|как (ты )?работа|что ты умеешь|команды|help|как это работа/.test(t)){await showHelp();return;}
+ if(/демо|demo/.test(t)){await say('Поехали! Показываю пример подбора — любое ваше сообщение остановит показ.');startDemo();return;}
+ if(/смягч/.test(t)){
+  if(!('budget' in S.answers)){await say('Сначала соберём параметры — тогда будет что смягчать 😉');await advance();return;}
+  S.answers.body='any';S.answers.fuel='any';S.answers.gearbox='any';renderChips();
+  await say('Ослабляю ремни: кузов, топливо и коробка — <b>не важно</b>. Пересобираю подбор…');
+  await runScan();return;
+ }
+ if(/дешевле|подешевле/.test(t)){
+  if(!('budget' in S.answers)||S.answers.budget===Infinity){await askStep('budget');return;}
+  S.answers.budget=Math.max(300000,Math.round(S.answers.budget*.8/50000)*50000);renderChips();
+  await say('Ужимаю бюджет до <b>'+fmtB(S.answers.budget)+'</b>. Пересобираю…');
+  await advance();return;
+ }
+ if(/отчет|скачать|сохранить|экспорт/.test(t)){
+  const had=S.ranked.length>0;
+  exportReport();
+  await say(had?'Отчёт улетел в загрузки 📄 В нём параметры запроса, топ вариантов и плюсы-минусы.':'Пока нечего сохранять — сначала соберём шорт-лист.');
+  setQuick(had?resultQuick():MENU);return;
+ }
+ if(/еще|дальше|следующ|другие вариант/.test(t)){await showMore();return;}
+ if(/сравн/.test(t)){
+  if(S.cmp.length>=2){openCompare();await say('Открываю таблицу сравнения: '+S.cmp.length+' авто, лучшие значения подсвечены зелёным ▲');setQuick(['Скачать отчёт','Новый подбор']);}
+  else{await say('Чтобы сравнить, отметьте <b>2–3 машины</b> кнопкой ⇄ на карточках (в чате или каталоге) — и я сведу их в таблицу с подсветкой лучших значений.');setQuick(['Каталог','Подобрать авто']);}
+  return;
+ }
+ if(/избранн/.test(t)){
+  S.cat.favOnly=true;renderFavToggle();renderList();openCatalog();
+  await say(S.favs.size?'В избранном <b>'+S.favs.size+'</b> авто — открыл каталог с фильтром ♥. Кликните карточку, чтобы посмотреть досье.':'В избранном пока пусто. Жмите ♥ на любой карточке — соберём личный шорт-лист, он сохранится даже после перезагрузки.');
+  setQuick(['Показать все','Подобрать авто']);return;
+ }
+ if(/показать все|все вариант/.test(t)){S.cat=catDefault();search.value='';renderCatalogAll();openCatalog();await say('Показываю весь каталог без фильтров.');setQuick(MENU);return;}
+ if(/каталог/.test(t)){
+  openCatalog();
+  await say('Каталог '+(isMobile()?'открыт':'справа')+': <b>'+CARS.length+' авто</b>, живой поиск, фильтры, сортировка и готовые подборки. Кликните карточку — открою досье с оценками и стоимостью километра.');
+  setQuick(['Подобрать авто','Избранное']);return;
+ }
+ if(/подобр|подбор|хочу (купить|машин|авто)|посоветуй|порекоменд|выбрать авто|купить (машин|авто)/.test(t)){
+  const found=parseAll(t);
+  const had=Object.keys(S.answers).length>0;
+  S.answers=found;S.ranked=[];S.shown=0;S.step=null;renderChips();
+  if(Object.keys(found).length){
+   const parts=Object.keys(found).map(k=>KEY_LABEL[k]+': <b>'+esc(ansLabel(k))+'</b>');
+   const missing=ORDER.filter(k=>!(k in S.answers));
+   await say('Понял с полуслова: '+parts.join(', ')+'. '+(missing.length?'Осталось уточнить пару моментов 👇':'Всё есть — запускаю подбор!'));
+  }else{
+   await say(had?'Ок, с чистого листа! Шесть коротких вопросов — и будет шорт-лист.':'Отлично! Шесть коротких вопросов — и соберу шорт-лист под вас. Можно отвечать кнопками или текстом.');
+  }
+  await advance();return;
+ }
+ if(/бюджет/.test(t)&&ORDER.every(k=>(k in S.answers)||k==='budget')){
+  const nb=parseBudget(t);
+  if(nb!==null){
+   S.answers.budget=nb;S.step=null;renderChips();
+   await say('Бюджет: <b>'+fmtB(nb)+'</b>. Пересобираю подбор…');
+   await advance();
+  }else await askStep('budget');
+  return;
+ }
+ const ord=t.match(/перв|втор|трет/);
+ if(ord&&S.ranked.length&&/подроб|открой|расскаж|про |^перв|^втор|^трет/.test(t)){
+  const idx={'перв':0,'втор':1,'трет':2}[ord[0]];
+  const e=S.ranked[idx];
+  if(e){openDrawer(e.car.id);await say(opinionText(e.car));setQuick(resultQuick());return;}
+ }
+ if(S.step){
+  const v=parseStep(S.step,t);
+  if(v!==null){S.answers[S.step]=v;S.step=null;renderChips();await advance();return;}
+ }
+ const multi=parseAll(t);
+ if(Object.keys(multi).length){
+  Object.assign(S.answers,multi);S.step=null;renderChips();
+  const parts=Object.keys(multi).map(k=>KEY_LABEL[k]+': <b>'+esc(ansLabel(k))+'</b>');
+  const missing=ORDER.filter(k=>!(k in S.answers));
+  await say('Понял: '+parts.join(', ')+'. '+(missing.length?'Осталось уточнить пару моментов 👇':'Всё есть — запускаю подбор!'));
+  await advance();return;
+ }
+ const c=findCarByAlias(t);
+ if(c){
+  await say(opinionText(c));
+  const e=S.ranked.find(x=>x.car.id===c.id);
+  const n=await raw('<div class="cards">'+carCard(c,{pct:e?e.pct:null,reasons:e?e.reasons:null})+'</div>');
+  if(e)animateRings(n);
+  if(S.step){await say('И возвращаемся к подбору — '+QUESTIONS[S.step].text);setQuick(QUESTIONS[S.step].opts);}
+  else setQuick(S.ranked.length?resultQuick():MENU);
+  return;
+ }
+ if(/^(привет|здравств|хай|добрый|доброе|ку|салют)/.test(t)){await say('Привет-привет! 👋 Готов подобрать машину мечты — или хотя бы просто хорошую. С чего начнём?');setQuick(MENU);return;}
+ if(/спасибо|спс|круто|класс|супер|огонь|топ/.test(t)){await say('Всегда пожалуйста! Обращайтесь — у меня '+CARS.length+' машины в базе и ни одного выходного 🏁');setQuick(MENU);return;}
+ await say('Хм, это вне моей прошивки 🙂 Я умею подбирать авто, показывать каталог, сравнивать и объяснять выбор. Попробуйте, например: <span class="hint">«кроссовер до 2 млн, автомат»</span> — или жмите кнопки ниже.');
+ setQuick(S.step?QUESTIONS[S.step].opts:MENU);
+}
+async function showHelp(){
+ await say('<div class="res-head">'+ico('info',18)+'<b>КАК Я УСТРОЕН</b></div>'
+ +'Я работаю <b>прямо в браузере</b>: один HTML-файл, '+CARS.length+' авто в локальной базе, скоринг по 7 критериям — бюджет, кузов, сценарий, коробка, топливо, приоритет и надёжность. Никаких API, ключей и интернета.'
+ +'<div class="cmd-list">'
+ +'<div><code>кроссовер до 2 млн, автомат</code><span>понимаю запрос одной фразой</span></div>'
+ +'<div><code>ещё</code><span>следующие варианты шорт-листа</span></div>'
+ +'<div><code>дешевле</code><span>ужимаю бюджет на 20%</span></div>'
+ +'<div><code>расскажи про весту</code><span>мнение о любой машине из базы</span></div>'
+ +'<div><code>сравни</code><span>таблица на 2–3 авто с подсветкой лучшего</span></div>'
+ +'<div><code>отчёт</code><span>скачать подборку в .txt</span></div>'
+ +'<div><code>заново</code><span>сбросить диалог</span></div>'
+ +'</div>');
+ setQuick([{t:'Подобрать авто',p:1},'Каталог']);
+}
+
+/* ---------- приветствие / сброс ---------- */
+async function greet(){
+ await say('Привет! Я <b>Карыч</b> — автоподборщик. Помогу выбрать машину без головной боли: шесть коротких вопросов — и шорт-лист из '+CARS.length+' авто с ценами, плюсами и минусами.');
+ await say('Можно и сразу по-человечески: <span class="hint">«кроссовер до 2,5 млн, автомат, для семьи»</span> — пойму с полуслова 😉');
+ setQuick(MENU);
+}
+async function resetChat(withGreet){
+ S.answers={};S.step=null;S.ranked=[];S.shown=0;S.mode=null;
+ msgs.innerHTML='';renderChips();setQuick([]);
+ if(withGreet)await greet();
+}
+
+/* ---------- сценарий показа (по команде «демо» в чате) ---------- */
+function stopDemo(){if(!S.demo.on)return;S.demo.on=false;S.demo.t++;}
+function startDemo(){
+ if(S.demo.on){stopDemo();toast('Показ остановлен');return;}
+ S.demo.on=true;S.demo.t++;const tk=S.demo.t;
+ const alive=()=>S.demo.on&&tk===S.demo.t;
+ enqueue(async()=>{
+  await resetChat(true);
+  const steps=['Подбери кроссовер до 2,5 млн, автомат, бензин, для семьи, главное надёжность','Ещё варианты','Подробнее про первый'];
+  for(let i=0;i<steps.length;i++){
+   await sleep(700);if(!alive())return;
+   await doUser(steps[i],{demo:true});
+  }
+  await sleep(500);if(!alive())return;
+  stopDemo();
+  toast('🏁 Показ завершён — теперь ваш ход!','ok');
+ });
+}
+
+/* ---------- шапка ---------- */
+resetBtn.addEventListener('click',()=>{stopDemo();enqueue(()=>doUser('заново'));});
+catBtn.addEventListener('click',()=>{if(catalog.classList.contains('open'))closeCatalog();else openCatalog();});
+$('catClose').addEventListener('click',closeCatalog);
+
+/* ---------- старт ---------- */
+$('botFace').innerHTML=ico('gauge',24);
+$('searchIco').innerHTML=ico('search',15);
+$('catClose').innerHTML=ico('x',14);
+resetBtn.innerHTML=ico('reset',17);
+catBtn.innerHTML=ico('grid',17);
+sendBtn.innerHTML=ico('send',19);
+$('baseCnt').textContent=CARS.length+' авто';
+try{
+ renderCatalogAll();renderTray();renderChips();updateSendState();syncViewport();
+}catch(e){console.error(e);}
+enqueue(greet);
+</script>
+</body>
+</html>
+```
